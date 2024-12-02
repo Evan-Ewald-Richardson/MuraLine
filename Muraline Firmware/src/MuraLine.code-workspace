@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"name": "MuraLine",
+			"path": "../../MuraLine"
+		},
+		{
+			"name": "Muraline Firmware",
+			"path": ".."
+		}
+	],
+	"settings": {}
+}
