@@ -49,10 +49,10 @@ void setup()
   AccelStepper stepperA(1, A_STEP, A_DIR); // (Typeof driver: with 2 pins, STEP, DIR)
   AccelStepper stepperB(1, B_STEP, B_DIR); 
 
-  MacroGantry(MAX_X, MAX_Y, PADDING_X, PADDING_Y, 
+  // something fancier if we have time
+  /*MacroGantry(MAX_X, MAX_Y, PADDING_X, PADDING_Y, 
               MAX_LINEAR_PAINT_VELOCITY, MIN_LINEAR_PAINT_VELOCITY, MAX_LINEAR_MOVE_VELOCITY, MAX_LINEAR_ACCEL, 
-              PAINT_ACTUATION_PRESSURE);
-
+              PAINT_ACTUATION_PRESSURE, stepperA, stepperB);*/
 }
 
 void loop()
@@ -62,3 +62,54 @@ void loop()
       Serial.println("Hello");
 }
 
+// The functions below are 
+
+/*
+    Linear motion from wherever it is to a new position
+*/
+void moveTo(double x, double y)
+{
+  
+}
+
+/*
+    Straight line motion from a start and end coordinate
+*/
+void moveLineBetween(int xStart, int yStart, int xEnd, int yEnd)
+{
+
+}
+
+/*
+    Circular arc motion between two points. A radius determines how "flat" the path is
+*/
+void moveArc(int xStart, int yStart, int xEnd, int yEnd, int radius)
+{
+
+}
+
+/*
+    Draws a shape from a pre-made list, specifying the centerpoint
+
+    Square, circle, star, oval, diamond
+*/
+void drawShape(String input, int x, int y)
+{
+
+}
+
+/*
+    Returns the gantry back to origin
+*/
+void calibrate()
+{
+
+}
+
+/*
+    Sets the current position as the origin - use at your own risk!
+*/
+void calibrateCurrentPosition()
+{
+
+}

@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <Kinematics.h>
+//#include <AccelStepper.h>
 
 #include <ManualControl.h>
 #include <ShapeInput.h>
@@ -25,6 +26,8 @@ class MacroGantry
         MacroGantry(int maxX, int maxY, int padX, int padY, 
                     int maxPaintSpeed, int minPaintSpeed, int maxMoveSpeed, int maxAccel,
                     int paintPressure);
+
+        //void setSteppers(AccelStepper& stepperA, AccelStepper& stepperB)
 
         /*
             Linear motion from wherever it is to a new position
