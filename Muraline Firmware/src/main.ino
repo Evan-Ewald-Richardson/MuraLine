@@ -1,8 +1,8 @@
 #include <Arduino.h>
 #include <AccelStepper.h>
 
-#include <MacroGantry.h>
-#include <MicroGantry.h>
+// #include <MacroGantry.h>
+// #include <MicroGantry.h>
 
 
 // Global Definitions
@@ -32,22 +32,42 @@
 #define PAINT_ACTUATION_PRESSURE 2 // how much pressure to press down on the paint can, determined by stepper distance 
 
 /*
-  --------------- Kinematic Constraints --------------- 
+  --------------- Kinematic Definitions --------------- 
   Velocities are measured in **cm/s**
 */
 #define MAX_LINEAR_PAINT_VELOCITY 100
 #define MIN_LINEAR_PAINT_VELOCITY 10
 #define MAX_LINEAR_MOVE_VELOCITY 200
 #define MAX_LINEAR_ACCEL 50 // cm/s^2
+// this is the calibration value for kinematics. This must be calculated with the system.
+#define STEPS_CM 100
 
+/*
+  --------------- Pin Assignments ---------------
+*/
+#define A_STEP 2 
+#define A_DIR 3
+#define B_STEP 4
+#define B_DIR 5
 
+/*
 
+  --------------- Global Variables ---------------
+
+*/
+// double stepA = 0;
+// double stepB = 0;
+double cartesianPosition[] = {0,0};
+double stepPositionRequired[] = {0,0}; // stepper A and B required steps
+bool newPosition = FALSE; // enable bit for position sequence control
+
+AccelStepper stepperA(1, A_STEP, A_DIR); // (Typeof driver: with 2 pins, STEP, DIR)
+AccelStepper stepperB(1, B_STEP, B_DIR); 
 
 void setup()
 {
   Serial.begin(BAUD);
-  AccelStepper stepperA(1, A_STEP, A_DIR); // (Typeof driver: with 2 pins, STEP, DIR)
-  AccelStepper stepperB(1, B_STEP, B_DIR); 
+  
 
   // something fancier if we have time
   /*MacroGantry(MAX_X, MAX_Y, PADDING_X, PADDING_Y, 
@@ -59,23 +79,53 @@ void loop()
 {
   if(DEBUG)
     if(millis() % 500 == 0)
-      Serial.println("Hello");
+      Serial.println("Hello World");
+
+  // move the motors
+  stepperA.run(); // non-blocking, as opposed to runToPosition
+  stepperB.run();
 }
 
-// The functions below are 
+/*
+  Calculates steps required for the position requested, sets the required length of cable to be unspooled.
+  This uses conversion factor needs to be calculated through calibration.
+
+  cm distance in the X and Y -> step distances in the X and Y
+*/
+void positionToSteps(double position[]])
+{
+  // Do some calculation shit with your grade 10 math
+  
+  
+  // Convert to step position
+  stepPositionRequired[0] = position[0]*STEPS_CM;
+  stepPositionRequired[1] = position[1]*STEPS_CM;
+
+  newPosition = TRUE;
+}
+
+// The functions below should be in MacroGantry.h
 
 /*
     Linear motion from wherever it is to a new position
 */
 void moveTo(double x, double y)
 {
-  
+  double temp[] = {x, y};
+
+  positionToSteps(temp);
+
+  // set the target position, doesn't actually move the motors yet
+  stepperA.moveTo(stepPositionRequired[0]);
+  stepperB.moveTo(stepPositionRequired[1]);
+
+
 }
 
 /*
     Straight line motion from a start and end coordinate
 */
-void moveLineBetween(int xStart, int yStart, int xEnd, int yEnd)
+void moveLineBetween(double xStart, double yStart, double xEnd, double yEnd)
 {
 
 }
@@ -83,7 +133,7 @@ void moveLineBetween(int xStart, int yStart, int xEnd, int yEnd)
 /*
     Circular arc motion between two points. A radius determines how "flat" the path is
 */
-void moveArc(int xStart, int yStart, int xEnd, int yEnd, int radius)
+void moveArc(double xStart, double yStart, double xEnd, double yEnd, double radius)
 {
 
 }
@@ -93,7 +143,7 @@ void moveArc(int xStart, int yStart, int xEnd, int yEnd, int radius)
 
     Square, circle, star, oval, diamond
 */
-void drawShape(String input, int x, int y)
+void drawShape(String input, double x, double y)
 {
 
 }
