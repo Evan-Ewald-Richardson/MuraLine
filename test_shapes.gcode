@@ -1,7 +1,7 @@
 G21 ; Set units to millimeters
 G90 ; Set absolute positioning
 
-G1 F20000 ; Set federate (speed) ;mm/min ish
+G1 F16000 ; Set federate (speed) ;mm/min ish
 
  
 G1 X0 Y0

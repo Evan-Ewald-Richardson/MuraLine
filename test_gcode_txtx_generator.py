@@ -1,3 +1,5 @@
+import os
+
 def generate_gcode(feed_rate, Z_actuation, X_max, Y_max):
     test_GCode = f"""
     G21 ; Set units to millimeters
@@ -66,8 +68,10 @@ def generate_gcode(feed_rate, Z_actuation, X_max, Y_max):
 
     G1 X{X_max * 0 / 450} Y{Y_max * 0 / 450}
     """
-
+    current_dir = os.getcwd()
     file_name = f"test_gcode_{feed_rate}_{Z_actuation}_{X_max}_{Y_max}.gcode"
+    file_name = os.path.join(current_dir, file_name)
+
     try:
         with open(file_name, "w") as file:
             file.write(test_GCode)
