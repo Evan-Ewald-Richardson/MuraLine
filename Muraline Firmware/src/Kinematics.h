@@ -15,4 +15,6 @@ class Kinematics
             Give the kinematics engine a position, and it will move the motors accordingly
         */
         Kinematics();
-}
+
+        
+};

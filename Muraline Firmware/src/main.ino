@@ -14,6 +14,7 @@
 #define TRUE 1
 #define FALSE 0
 
+
 /*
   --------------- Geometric Constraints --------------- 
 
@@ -82,7 +83,7 @@ void loop()
       Serial.println("Hello World");
 
   // move the motors
-  stepperA.run(); // non-blocking, as opposed to runToPosition
+  stepperA.run(); 
   stepperB.run();
 }
 
@@ -92,11 +93,10 @@ void loop()
 
   cm distance in the X and Y -> step distances in the X and Y
 */
-void positionToSteps(double position[]])
+void positionToSteps(double position[])
 {
-  // Do some calculation shit with your grade 10 math
-  
-  
+  // Do some calculation shit with your grade 10 math (or something nicer)
+
   // Convert to step position
   stepPositionRequired[0] = position[0]*STEPS_CM;
   stepPositionRequired[1] = position[1]*STEPS_CM;
@@ -118,8 +118,6 @@ void moveTo(double x, double y)
   // set the target position, doesn't actually move the motors yet
   stepperA.moveTo(stepPositionRequired[0]);
   stepperB.moveTo(stepPositionRequired[1]);
-
-
 }
 
 /*
@@ -143,6 +141,8 @@ void moveArc(double xStart, double yStart, double xEnd, double yEnd, double radi
 
     Square, circle, star, oval, diamond
 */
+String shapes[] = {"square", "circle", "star", "oval", "diamond"};
+
 void drawShape(String input, double x, double y)
 {
 
@@ -163,3 +163,10 @@ void calibrateCurrentPosition()
 {
 
 }
+
+
+/*/
+
+  --------------- MULTI-STEPPER CONTROL THINGS ---------------
+
+*/
