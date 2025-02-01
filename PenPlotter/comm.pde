@@ -75,6 +75,14 @@
         updatePos(currentX, currentY + y);
     }
 
+    public void moveDeltaA(float a) {
+        send("G350" + " P1" + "S" + a + "\n");
+    }
+
+    public void moveDeltaB(float b) {
+        send("G350" + " P2" + "S" + b + "\n");
+    }
+
     public void sendMoveG0(float x, float y) {
         send("G0 X" + x + " Y" + y + "\n");
         updatePos(x, y);

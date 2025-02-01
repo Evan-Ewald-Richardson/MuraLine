@@ -41,6 +41,7 @@ public:
     static void emergencyStop();
     static void checkFreeMemory();
     static void writeLowestFreeRAM();
+    static void processG350Command(GCode* com);
 private:
     static int lowestRAMValue;
     static int lowestRAMValueSend;

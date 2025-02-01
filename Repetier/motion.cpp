@@ -173,14 +173,20 @@ void PrintLine::segmentLine()
       float dy = y2-y1;
       float x = x1;
       float y = y1;
-      float steps = fabs(dx);
-      if(fabs(dy) > steps)
-        steps = fabs(dy);
+      float raw_steps = fabs(dx);
+      if(fabs(dy) > raw_steps)
+        raw_steps = fabs(dy);
+
+      float steps = steps/100;
+
+      if (steps < 1.0)
+        steps = 1.0;
+
       dx = dx/steps;
       dy = dy/steps;
-     // Com::print("seg line ");
-     // Com::print((int)steps);
-     // Com::print("\n ");
+      Com::print("seg line ");
+      Com::print((int)steps);
+      Com::print("\n ");
       for(int s = 0;s<steps-1;s++)
       {
         x+=dx;

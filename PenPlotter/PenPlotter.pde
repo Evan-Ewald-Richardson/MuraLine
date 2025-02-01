@@ -59,6 +59,9 @@ import java.awt.BorderLayout;
     int jogX;                 // set if jog X button pressed
     int jogY;                 // set if jog Y button pressed
 
+    int jogMotorA;        // set if jog A button pressed
+    int jogMotorB;        // set if jog B button pressed
+
     int machineWidth = 840;   // Width of machine in mm
     int homeX = machineWidth/2; //X Home position
     int machineHeight = 800;    //machine Height only used to draw page height
@@ -638,6 +641,16 @@ void initLogging()
         {
             com.moveDeltaY(jogY);
         }
+
+        if (jogMotorA != 0)
+        {
+            com.moveDeltaA(jogMotorA);
+        }
+        if (jogMotorB != 0)
+        {
+            com.moveDeltaB(jogMotorB);
+        }
+        
         com.serialEvent();
         tick++;
         if(millis() > lastTime+1000)

@@ -455,10 +455,14 @@ void Commands::executeGCode(GCode *com)
             
             PrintLine::moveSteps(com->X,com->Y,true);
             break;
+        case 350: // G350 - move motor 
+            processG350Command(com);
+            break;
         case 1: // G1
             if(com->hasS())
                 Printer::setNoDestinationCheck(com->S!=0);
            // if(Printer::setDestinationStepsFromGCode(com)) // For X Y Z E F
+        
 #if NONLINEAR_SYSTEM
                 PrintLine::queueDeltaMove(ALWAYS_CHECK_ENDSTOPS, true, true);
 #else
@@ -1686,4 +1690,36 @@ void Commands::writeLowestFreeRAM()
         Com::printFLN(Com::tFreeRAM,lowestRAMValue);
     }
 
+}
+
+void Commands::processG350Command(GCode* com) {
+    if (com->hasP() && com->hasS()) { // Check for motor (P) and steps (S)
+        char motor = com->P;          // Motor identifier (1 or 2)
+        float steps = com->S;         // Steps to move (can be positive or negative)
+        uint8_t pathOptimize = 0;     // Set to 0 for no path optimization
+
+        // Check for feedrate (F)
+        if (com->hasF()) {
+            float feedrate = com->F; 
+            if (feedrate > 0) {
+                Printer::feedrate = feedrate; // Set feedrate directly
+                Com::printFLN(PSTR("Feedrate set to: "), Printer::feedrate);
+            } else {
+                Com::printFLN(PSTR("Error: Invalid feedrate value. Must be greater than 0."));
+                return;
+            }
+        }
+
+        if (motor == 1) {
+            PrintLine::moveSteps(steps, 0, pathOptimize);
+            Com::printFLN(PSTR("Motor A moved."));
+        } else if (motor == 2) {
+            PrintLine::moveSteps(0, steps, pathOptimize);
+            Com::printFLN(PSTR("Motor B moved."));
+        } else {
+            Com::printFLN(PSTR("Error: Invalid motor identifier. Use P1 or P2."));
+        }
+    } else {
+        Com::printFLN(PSTR("Error: Missing parameters P (motor) or S (steps)."));
+    }
 }

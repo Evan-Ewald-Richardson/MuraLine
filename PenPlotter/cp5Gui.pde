@@ -191,8 +191,13 @@
         addButton("up", "", leftMargin+36, posY+=ySpace+4).onPress(press).onRelease(release).setSize(30, 24);
         addButton("left", "", leftMargin+16, posY+=30).onPress(press).onRelease(release).setSize(30, 24);
         addButton("right", "", leftMargin+56, posY).onPress(press).onRelease(release).setSize(30, 24);
-
         addButton("down", "", leftMargin+36, posY+=30).onPress(press).onRelease(release).setSize(30, 24);
+
+        addButton("motorACW", "A", leftMargin + 16, posY += ySpace).onPress(press).onRelease(release).setSize(30, 24);
+        addButton("motorBCW", "B", leftMargin + 56, posY).onPress(press).onRelease(release).setSize(30, 24);
+        addButton("motorACCW", "A", leftMargin + 16, posY += ySpace).onPress(press).onRelease(release).setSize(30, 24);
+        addButton("motorBCCW", "B", leftMargin + 56, posY).onPress(press).onRelease(release).setSize(30, 24);
+
 
         loadButton = addButton("load", "Load", leftMargin, posY+=ySpace);
         plotButton = addButton("plot", "Plot", leftMargin, posY+=ySpace);
@@ -271,6 +276,14 @@
                 jog(true, 0, -1);
             else if (b.getName().equals("down"))
                 jog(true, 0, 1);
+            else if (b.getName().equals("motorACW"))
+                jogMotor(true, 1, 1);
+            else if (b.getName().equals("motorACCW"))
+                jogMotor(true, 1, -1);
+            else if (b.getName().equals("motorBCW"))
+                jogMotor(true, 2, 1);
+            else if (b.getName().equals("motorBCCW"))
+                jogMotor(true, 2, -1);
         }
     };
 
@@ -285,6 +298,14 @@
                 jog(false, 0, 0);
             else if (b.getName().equals("down"))
                 jog(false, 0, 0);
+            else if (b.getName().equals("motorACW"))
+                jogMotor(false, 1, 0);
+            else if (b.getName().equals("motorACCW"))
+                jogMotor(false, 1, 0);
+            else if (b.getName().equals("motorBCW"))
+                jogMotor(false, 2, 0);
+            else if (b.getName().equals("motorBCCW"))
+                jogMotor(false, 2, 0);
         }
     };
 
@@ -535,5 +556,24 @@
             com.sendAbsolute();
             jogX = 0;
             jogY = 0;
+        }
+    }
+
+    public void jogMotor(boolean jog, int motor, int step)
+    {
+        if (jog) {
+            if (motor == 1) {
+                com.sendRelative();
+                jogMotorA = step;
+            }
+            else if (motor == 2) {
+                com.sendRelative();
+                jogMotorB = step;
+            }
+        } else
+        {
+            com.sendAbsolute();
+            jogMotorA = 0;
+            jogMotorB = 0;
         }
     }
