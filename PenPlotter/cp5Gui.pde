@@ -27,6 +27,8 @@
     
     MyButton loadButton;
     MyButton plotButton;
+    MyButton stepButton;
+    MyButton pauseButton;
     MyButton penUpButton;
     MyButton noDrawButton;
     
@@ -201,6 +203,8 @@
 
         loadButton = addButton("load", "Load", leftMargin, posY+=ySpace);
         plotButton = addButton("plot", "Plot", leftMargin, posY+=ySpace);
+        pauseButton = addButton("pause", "Pause", leftMargin, posY+=ySpace);
+        stepButton = addButton("step", "Step", leftMargin, posY+=ySpace);
         addButton("dorotate", "Rotate", leftMargin, posY+=ySpace);
         addButton("mirrorX","Flip X",leftMargin,posY+=ySpace);
         addButton("mirrorY","Flip Y",leftMargin,posY+=ySpace);
@@ -366,13 +370,17 @@
 
     public void setHome()
     {
-        com.sendHome();
+        currentPlot.sendImmediateCommand("M1 Y" + homeY + "\n");
     }
 
     public void plotDone()
     {
         plotButton.setCaptionLabel("Plot");
         plotButton.setImg(plotImg);
+        stepButton.setCaptionLabel("Step");
+        stepButton.setImg(stepImg);
+        pauseButton.setCaptionLabel("Pause");
+        pauseButton.setImg(pauseImg);
     }
 
     public void fileLoaded() {
@@ -401,39 +409,47 @@
     public void plot(ControlEvent theEvent)
     {
         Button b = (Button) theEvent.getController();
-        if (b.getCaptionLabel().getText().contains("Step")) {
-
-            if (currentPlot.isPlotting())
-                currentPlot.nextPlot(true);
-            else
-            {
-                b.setCaptionLabel("Plot");
-                ((MyButton)b).setImg(plotImg);
+        if (b.getCaptionLabel().getText().contains("Abort")) {
+            currentPlot.reset();
+            plotButton.setCaptionLabel("Plot");
+            ((MyButton)plotButton).setImg(plotImg);
+            pauseButton.setCaptionLabel("Pause");
+            ((MyButton)pauseButton).setImg(pauseImg);
+        } else {
+            if (currentPlot.isLoaded() && !currentPlot.isPlotting()) {
+                currentPlot.plot();
+                if(currentPlot.isPlotting()) {
+                    plotButton.setCaptionLabel("Abort");
+                    ((MyButton)plotButton).setImg(pauseImg);
+                    stepButton.setCaptionLabel("Step");
+                    ((MyButton)stepButton).setImg(stepImg);
+                    pauseButton.setCaptionLabel("Play");
+                    ((MyButton)pauseButton).setImg(plotImg);
+                }
             }
         }
-        else if (b.getCaptionLabel().getText().contains("Abort"))
-        {
-            b.setCaptionLabel("Plot");
-            ((MyButton)b).setImg(plotImg);
-            currentPlot.reset();
-        }
-        else
-        {
-            if (currentPlot.isLoaded())
-                currentPlot.plot();
+    }
 
-            if(currentPlot.isPlotting() )
-            {
-                if (com.myPort == null)
-                {
-                    b.setCaptionLabel("Step");
-                    ((MyButton)b).setImg(stepImg);
-                }
-                else
-                {
-                    b.setCaptionLabel("Abort");
-                    ((MyButton)b).setImg(pauseImg);
-                }
+    public void step(ControlEvent theEvent)
+    {
+        Button b = (Button) theEvent.getController();
+        if (currentPlot.isPlotting()) {
+            currentPlot.nextPlot(true, true);
+        }
+    }
+
+    public void pause(ControlEvent theEvent)
+    {
+        Button b = (Button) theEvent.getController();
+        if (currentPlot.isPlotting()) {
+            if (b.getCaptionLabel().getText().equals("Pause")) {
+                currentPlot.pause();
+                b.setCaptionLabel("Play");
+                ((MyButton)b).setImg(plotImg);
+            } else {
+                currentPlot.resume();
+                b.setCaptionLabel("Pause");
+                ((MyButton)b).setImg(pauseImg);
             }
         }
     }
@@ -473,10 +489,10 @@
 
         if (b.getCaptionLabel().getText().indexOf("Up") > 0)
         {
-            com.sendPenUp();
+            currentPlot.sendImmediateCommand("G0 Z5\n");
         } else
         {
-            com.sendPenDown();
+            currentPlot.sendImmediateCommand("G0 Z0\n");
         }
     }
     
@@ -499,14 +515,17 @@
 
     public void goHome()
     {
-        com.sendAbsolute();
-        com.sendPenUp();
-        com.sendMoveG0(homeX, homeY);
+        String cmd = "G90\n";  // Absolute positioning
+        currentPlot.sendImmediateCommand(cmd);
+        cmd = "G0 Z5\n";  // Pen up
+        currentPlot.sendImmediateCommand(cmd);
+        cmd = "G0 X" + homeX + " Y" + homeY + "\n";
+        currentPlot.sendImmediateCommand(cmd);
     }
 
     public void off()
     {
-        com.sendMotorOff();
+        currentPlot.sendImmediateCommand("M18\n"); // Motors off
     }
 
     public void save()
@@ -548,12 +567,12 @@
     public void jog(boolean jog, int x, int y)
     {
         if (jog) {
-            com.sendRelative();
+            currentPlot.sendImmediateCommand("G91\n"); // Relative positioning
             jogX = x;
             jogY = y;
         } else
         {
-            com.sendAbsolute();
+            currentPlot.sendImmediateCommand("G90\n"); // Absolute positioning
             jogX = 0;
             jogY = 0;
         }
@@ -563,16 +582,16 @@
     {
         if (jog) {
             if (motor == 1) {
-                com.sendRelative();
+                currentPlot.sendImmediateCommand("G91\n"); // Relative positioning
                 jogMotorA = step;
             }
             else if (motor == 2) {
-                com.sendRelative();
+                currentPlot.sendImmediateCommand("G91\n"); // Relative positioning
                 jogMotorB = step;
             }
         } else
         {
-            com.sendAbsolute();
+            currentPlot.sendImmediateCommand("G90\n"); // Absolute positioning
             jogMotorA = 0;
             jogMotorB = 0;
         }

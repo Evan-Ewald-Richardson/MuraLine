@@ -1,9 +1,12 @@
 class Plot {
         boolean loaded;
         boolean plotting;
+        boolean paused;
         boolean isImage;
         int plotColor = previewColor;
         int penIndex;
+        long lastCommandTime = 0;  // Track when last command was processed
+        int disconnectedDelay = 100;  // Delay between commands when disconnected (milliseconds)
         ArrayList<Path> penPaths = new ArrayList<Path>();
         PGraphics preview = null;
         
@@ -44,6 +47,10 @@ class Plot {
         
         ArrayList<GCodeCommand> gcodeQueue = new ArrayList<GCodeCommand>();
         protected GCodeCommand currentCommand = null; // Track current command being executed
+        
+        // Store last position before pause
+        protected float pausedX = Float.NaN;
+        protected float pausedY = Float.NaN;
         
         String progress()
         {
@@ -138,33 +145,24 @@ class Plot {
         void crop(int cropLeft, int cropTop, int cropRight, int cropBottom){}
 
         public void plot() {
-          plotting = true;
-          penIndex = 0;
-          plotColor = whilePlottingColor;
-          
-          // Clear any existing commands
-          clearGcodeQueue();
-          
-          // Queue initial setup commands
-          queueGcode("G90\n"); // Absolute positioning
-          queueGcode("G21\n"); // Use millimeters
-          queueGcode("G0 F" + speedValue + "\n"); // Set speed
-          queueGcode("M4 X" + machineWidth + " E" + penWidth + " S" + stepsPerRev + " P" + mmPerRev + "\n"); // Machine specs
-          queueGcode("M1 Y" + homeY + "\n"); // Home position
-          
-          // Time the GCODE generation process
-          long startTime = System.currentTimeMillis();
-          
-          // Generate all path GCODE commands
-          generatePathGcode();
-          
-          // Calculate and log the time taken
-          long endTime = System.currentTimeMillis();
-          long duration = endTime - startTime;
-          println("GCODE Queue Generation: " + duration + "ms for " + gcodeQueue.size() + " commands");
-          
-          // Start sending commands
-          nextPlot(true);
+            plotting = true;
+            paused = true;  // Start paused by default
+            penIndex = 0;
+            plotColor = whilePlottingColor;
+            lastCommandTime = millis();  // Initialize the time
+            
+            // Clear any existing commands
+            clearGcodeQueue();
+            
+            // Queue initial setup commands
+            queueGcode("G90\n"); // Absolute positioning
+            queueGcode("G21\n"); // Use millimeters
+            queueGcode("G0 F" + speedValue + "\n"); // Set speed
+            queueGcode("M4 X" + machineWidth + " E" + penWidth + " S" + stepsPerRev + " P" + mmPerRev + "\n"); // Machine specs
+            queueGcode("M1 Y" + homeY + "\n"); // Home position
+            
+            // Generate all path GCODE commands
+            generatePathGcode();
         }
         
         // Generate GCODE for all paths
@@ -194,21 +192,103 @@ class Plot {
         }
         
         public void plottingStopped() {
-          plotting = false;
-          penIndex = 0;
-          plotColor = previewColor;
-          clearGcodeQueue(); // Clear any remaining commands
-          plotDone();
-          goHome();
-          com.sendMotorOff();
-      }
+            plotting = false;
+            paused = false;
+            pausedX = Float.NaN;
+            pausedY = Float.NaN;
+            penIndex = 0;
+            plotColor = previewColor;
+            clearGcodeQueue();
+            plotDone();
+            goHome();
+            // Only send motor off if connected
+            if (com.myPort != null) {
+                com.sendMotorOff();
+            }
+        }
         
-        void nextPlot(boolean preview) {
-            // If there are commands in the queue, send them
+        public void pause() {
+            if (plotting) {
+                paused = true;
+                // Store current position
+                pausedX = currentX;
+                pausedY = currentY;
+                // Lift pen when pausing
+                sendImmediateCommand("G0 Z5\n");
+            }
+        }
+
+        public void resume() {
+            if (plotting && paused) {
+                // First return to the paused position with pen up
+                if (!Float.isNaN(pausedX) && !Float.isNaN(pausedY)) {
+                    sendImmediateCommand("G90\n"); // Ensure absolute positioning
+                    sendImmediateCommand("G0 Z5\n"); // Ensure pen is up
+                    sendImmediateCommand(String.format("G0 X%.2f Y%.2f\n", pausedX, pausedY));
+                }
+                
+                paused = false;
+                // When resuming, process next command
+                nextPlot(true);
+            }
+        }
+
+        // Helper method to process commands in disconnected mode
+        protected void processDisconnectedQueue(boolean preview) {
+            // Schedule repeated calls to nextPlot to simulate machine responses
+            Thread timer = new Thread(new Runnable() {
+                public void run() {
+                    while (plotting && !paused && hasMoreGcode()) {
+                        try {
+                            Thread.sleep(disconnectedDelay);
+                            // Get next command and update UI in a thread-safe way
+                            String cmd = getNextGcode();
+                            if (cmd != null) {
+                                print(cmd);
+                                myTextarea.setText(" " + cmd);
+                                lastCommandTime = millis();
+                            }
+                        } catch (InterruptedException e) {
+                            break;
+                        }
+                    }
+                    // If no more commands and still plotting, stop
+                    if (!hasMoreGcode() && plotting) {
+                        plottingStopped();
+                    }
+                }
+            });
+            timer.start();
+        }
+
+        public void nextPlot(boolean preview) {
+            nextPlot(preview, false);  // Default to non-step mode
+        }
+
+        public void nextPlot(boolean preview, boolean isStepping) {
+            // If paused and not stepping, don't process next command
+            if (paused && !isStepping) {
+                return;
+            }
+            
+            // If there are commands in the queue, process them
             if (hasMoreGcode()) {
                 String cmd = getNextGcode();
                 if (cmd != null) {
-                    com.send(cmd);
+                    // If connected, send to hardware
+                    if (com.myPort != null) {
+                        com.send(cmd);
+                    } else {
+                        // If disconnected, handle command
+                        print(cmd);
+                        myTextarea.setText(" " + cmd);
+                        lastCommandTime = millis();
+                        
+                        // Only start continuous processing if not stepping
+                        if (!isStepping) {
+                            processDisconnectedQueue(preview);
+                        }
+                    }
                 }
                 return;
             }
@@ -251,5 +331,21 @@ class Plot {
             if (plotting) {
                 drawCurrentCommand();
             }
+        }
+
+        public void sendImmediateCommand(String cmd) {
+            // For immediate commands that should work even when paused
+            if (com.myPort != null) {
+                com.send(cmd);
+            }
+            // Always print the command and update UI
+            print(cmd);
+            myTextarea.setText(" " + cmd);
+        }
+
+        // Update position without affecting plot state
+        public void updatePos(float x, float y) {
+            currentX = x;
+            currentY = y;
         }
     }

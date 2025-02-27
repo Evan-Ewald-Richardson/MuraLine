@@ -1,4 +1,4 @@
- class Com {
+class Com {
     processing.serial.Serial myPort;  //the Serial port object
     String val;
     String lastCmd;
@@ -205,7 +205,6 @@
 
     public void queue(String msg) {
         if (myPort != null) {
-            // print("Q "+msg);
             buf.add(msg);
         }
     }
@@ -213,28 +212,24 @@
     public void nextMsg() {
         if (buf.size() > 0) {
             String msg = buf.get(0);
-           // print("sending "+msg);
             oksend(msg);
             buf.remove(0);
-        } else {
-
-            if (currentPlot.isPlotting())
-                currentPlot.nextPlot(true);
-
+        } else if (currentPlot.isPlotting()) {
+            currentPlot.nextPlot(true);
         }
     }
 
     public void send(String msg) {
-
-        if (okCount == 0)
-            oksend(msg);
-        else
-            queue(msg);
+        if (myPort != null) {
+            if (okCount == 0)
+                oksend(msg);
+            else
+                queue(msg);
+        }
     }
 
     public void oksend(String msg) {
         print(msg);
-
         if (myPort != null) {
             myPort.write(msg);
             lastCmd = msg;
