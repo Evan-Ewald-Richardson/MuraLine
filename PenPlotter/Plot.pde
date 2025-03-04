@@ -165,6 +165,94 @@ class Plot {
             generatePathGcode();
         }
         
+        // Constants for bezier curve generation
+        protected static final int G0_CURVE_SEGMENTS = 10;  // Number of segments for G0 curves
+        protected static final float CURVE_HEIGHT_FACTOR = 0.3f;  // How much the curve bulges (0.0-1.0)
+        
+        // Class-level additions to Plot class
+        protected class PathVector {
+            float x, y;      // Position
+            float dx, dy;    // Direction vector
+            
+            PathVector(float x, float y, float dx, float dy) {
+                this.x = x;
+                this.y = y;
+                this.dx = dx;
+                this.dy = dy;
+                normalize();
+            }
+            
+            void normalize() {
+                float len = sqrt(dx*dx + dy*dy);
+                if (len > 0.0001) {
+                    dx /= len;
+                    dy /= len;
+                }
+            }
+        }
+        
+        // Generate a curved G0 move that aligns with entry/exit vectors
+        protected void queueCurvedG0Move(PathVector start, PathVector end, int pathIndex, int lineIndex) {
+            // Validate input coordinates
+            if (Float.isNaN(start.x) || Float.isNaN(start.y) || 
+                Float.isNaN(end.x) || Float.isNaN(end.y)) {
+                println("Warning: Invalid coordinates detected in G0 move, skipping curve generation");
+                if (!Float.isNaN(end.x) && !Float.isNaN(end.y)) {
+                    queueGcode("G0 X" + end.x + " Y" + end.y + "\n", pathIndex, lineIndex);
+                }
+                return;
+            }
+            
+            // Calculate distance for scaling
+            float dx = end.x - start.x;
+            float dy = end.y - start.y;
+            float dist = sqrt(dx*dx + dy*dy);
+            
+            // Skip if distance is too small
+            if (dist < 0.01) {
+                queueGcode("G0 X" + end.x + " Y" + end.y + "\n", pathIndex, lineIndex);
+                return;
+            }
+            
+            // Calculate control points using entry/exit vectors
+            float cp1x = start.x + start.dx * dist * CURVE_HEIGHT_FACTOR;
+            float cp1y = start.y + start.dy * dist * CURVE_HEIGHT_FACTOR;
+            
+            float cp2x = end.x - end.dx * dist * CURVE_HEIGHT_FACTOR;
+            float cp2y = end.y - end.dy * dist * CURVE_HEIGHT_FACTOR;
+            
+            // Queue the curve segments using cubic bezier
+            for (int i = 0; i <= G0_CURVE_SEGMENTS; i++) {
+                float t = (float)i / G0_CURVE_SEGMENTS;
+                // Cubic bezier calculation
+                float mt = 1 - t;
+                float mt2 = mt * mt;
+                float mt3 = mt2 * mt;
+                float t2 = t * t;
+                float t3 = t2 * t;
+                
+                float px = mt3 * start.x + 
+                           3 * mt2 * t * cp1x + 
+                           3 * mt * t2 * cp2x + 
+                           t3 * end.x;
+                           
+                float py = mt3 * start.y + 
+                           3 * mt2 * t * cp1y + 
+                           3 * mt * t2 * cp2y + 
+                           t3 * end.y;
+                
+                // Validate calculated points
+                if (!Float.isNaN(px) && !Float.isNaN(py)) {
+                    queueGcode("G0 X" + px + " Y" + py + "\n", pathIndex, lineIndex);
+                }
+            }
+        }
+
+        // Generate GCODE for all paths
+        protected void generatePaths() {
+            // Base class has no paths to generate
+        }
+        
         // Generate GCODE for all paths
         protected void generatePathGcode() {
             // Base implementation handles setup, lets derived classes generate paths,
@@ -178,11 +266,6 @@ class Plot {
         protected void generatePathSetup() {
             queueGcode("G0 Z5\n"); // Pen up
             queueGcode("G0 X" + homeX + " Y" + homeY + "\n");
-        }
-        
-        // Override this in derived classes to generate specific path commands
-        protected void generatePaths() {
-            // Base class has no paths to generate
         }
         
         // Called at the end of path generation to cleanup/return home
@@ -301,21 +384,59 @@ class Plot {
         void load() {}
         void load(String fileName) {}
 
-        // Draw the current command state
+        // Helper method to draw a cubic bezier curve in the UI
+        protected void drawBezierCurve(float x1, float y1, float cp1x, float cp1y, 
+                                      float cp2x, float cp2y, float x2, float y2) {
+            noFill();
+            beginShape();
+            vertex(scaleX(x1), scaleY(y1));
+            bezierVertex(scaleX(cp1x), scaleY(cp1y), 
+                        scaleX(cp2x), scaleY(cp2y), 
+                        scaleX(x2), scaleY(y2));
+            endShape();
+        }
+
+        // Modified drawCurrentCommand to handle bezier curves
         protected void drawCurrentCommand() {
             if (currentCommand != null && plotting) {
-                // Draw line from last position to current target
                 stroke(currentCommand.isPenUp ? rapidColor : penColor);
                 strokeWeight(currentCommand.isPenUp ? 0.5 : 1);
                 
-                // If we have valid coordinates, draw the movement line
+                // If we have valid coordinates, draw the movement
                 if (!Float.isNaN(currentCommand.x) && !Float.isNaN(currentCommand.y)) {
                     float lastX = currentX;
                     float lastY = currentY;
                     float targetX = currentCommand.x;
                     float targetY = currentCommand.y;
                     
-                    sline(lastX, lastY, targetX, targetY);
+                    // If this is a G0 move, draw it as a curve
+                    if (currentCommand.command.startsWith("G0") && !currentCommand.isPenUp) {
+                        // Calculate control points similar to queueCurvedG0Move
+                        float dx = targetX - lastX;
+                        float dy = targetY - lastY;
+                        float dist = sqrt(dx*dx + dy*dy);
+                        
+                        if (dist > 0.01) {
+                            float mpx = (lastX + targetX) / 2;
+                            float mpy = (lastY + targetY) / 2;
+                            
+                            // Calculate perpendicular vector
+                            float perpX = -dy / dist;
+                            float perpY = dx / dist;
+                            
+                            // Control points
+                            float cp1x = lastX + dx/3 + perpX * dist * CURVE_HEIGHT_FACTOR;
+                            float cp1y = lastY + dy/3 + perpY * dist * CURVE_HEIGHT_FACTOR;
+                            float cp2x = lastX + dx*2/3 + perpX * dist * CURVE_HEIGHT_FACTOR;
+                            float cp2y = lastY + dy*2/3 + perpY * dist * CURVE_HEIGHT_FACTOR;
+                            
+                            drawBezierCurve(lastX, lastY, cp1x, cp1y, cp2x, cp2y, targetX, targetY);
+                        } else {
+                            sline(lastX, lastY, targetX, targetY);
+                        }
+                    } else {
+                        sline(lastX, lastY, targetX, targetY);
+                    }
                 }
             }
         }

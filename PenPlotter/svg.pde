@@ -65,23 +65,64 @@ class SvgPlot extends Plot {
     protected void generatePaths() {
         if (penPaths == null || penPaths.isEmpty()) return;
         
+        // Track the last position and vector between paths
+        PathVector lastPos = new PathVector(homeX, homeY, 0, -1); // Default upward vector at home
+        
         // Process each SVG path
         for (int i = 0; i < penPaths.size(); i++) {
             Path path = penPaths.get(i);
+            if (path == null || path.size() < 2) continue;
             
-            // For each path, first move to its start with pen up
-            float x1 = path.getPoint(0).x * scaleX + machineWidth / 2 + offX;
-            float y1 = path.getPoint(0).y * scaleY + homeY + offY;
+            // Calculate entry vector for this path
+            float entryX = path.getPoint(1).x * scaleX + machineWidth / 2 + offX;
+            float entryY = path.getPoint(1).y * scaleY + homeY + offY;
+            float startX = path.getPoint(0).x * scaleX + machineWidth / 2 + offX;
+            float startY = path.getPoint(0).y * scaleY + homeY + offY;
             
-            queueGcode("G0 Z5\n", i, 0); // Pen up
-            queueGcode("G0 X" + x1 + " Y" + y1 + "\n", i, 0); // Move to start
-            queueGcode("G0 Z0\n", i, 0); // Pen down
+            // Calculate entry direction from first two points of path
+            PathVector entryVec = new PathVector(
+                startX, 
+                startY,
+                entryX - startX,
+                entryY - startY
+            );
             
-            // Then draw the path
+            // Pen up before curved move
+            queueGcode("G0 Z5\n", i, 0);
+            
+            // Generate curved move using last position/vector and entry vector
+            queueCurvedG0Move(lastPos, entryVec, i, 0);
+            
+            // Pen down for drawing
+            queueGcode("G0 Z0\n", i, 0);
+            
+            // Draw the path
             for (int j = 1; j < path.size(); j++) {
-                float x2 = path.getPoint(j).x * scaleX + machineWidth / 2 + offX;
-                float y2 = path.getPoint(j).y * scaleY + homeY + offY;
-                queueGcode("G1 X" + x2 + " Y" + y2 + "\n", i, j);
+                float x = path.getPoint(j).x * scaleX + machineWidth / 2 + offX;
+                float y = path.getPoint(j).y * scaleY + homeY + offY;
+                
+                if (!Float.isNaN(x) && !Float.isNaN(y)) {
+                    queueGcode("G1 X" + x + " Y" + y + "\n", i, j);
+                }
+            }
+            
+            // Calculate exit vector for next path
+            if (path.size() >= 2) {
+                int last = path.size() - 1;
+                int secondLast = path.size() - 2;
+                
+                float exitX = path.getPoint(last).x * scaleX + machineWidth / 2 + offX;
+                float exitY = path.getPoint(last).y * scaleY + homeY + offY;
+                float beforeX = path.getPoint(secondLast).x * scaleX + machineWidth / 2 + offX;
+                float beforeY = path.getPoint(secondLast).y * scaleY + homeY + offY;
+                
+                // Update last position with exit vector for next path
+                lastPos = new PathVector(
+                    exitX,
+                    exitY,
+                    exitX - beforeX,
+                    exitY - beforeY
+                );
             }
         }
     }
@@ -122,16 +163,43 @@ class SvgPlot extends Plot {
         lastY = -offY;
         strokeWeight(0.1f);
         noFill();
-
+        
+        float prevEndX = homeX;
+        float prevEndY = homeY;
+        
         for (int i = 0; i < penPaths.size(); i++) {
             Path p = penPaths.get(i);
-
+            
+            // Draw G0 move to path start
             stroke(rapidColor);
-            if (i == 0)
-                sline(homeX, homeY, p.first().x * scaleX + homeX + offX, p.first().y * scaleY + homeY + offY);
-            else
-                sline(lastX * scaleX + homeX + offX, lastY * scaleY + homeY + offY, p.first().x * scaleX + homeX + offX, p.first().y * scaleY + homeY + offY);
-
+            float startX = p.first().x * scaleX + homeX + offX;
+            float startY = p.first().y * scaleY + homeY + offY;
+            
+            // Draw curved G0 move from previous end point to current start point
+            float dx = startX - prevEndX;
+            float dy = startY - prevEndY;
+            float dist = sqrt(dx*dx + dy*dy);
+            
+            if (dist > 0.01) {
+                float mpx = (prevEndX + startX) / 2;
+                float mpy = (prevEndY + startY) / 2;
+                
+                // Calculate perpendicular vector
+                float perpX = -dy / dist;
+                float perpY = dx / dist;
+                
+                // Control points
+                float cp1x = prevEndX + dx/3 + perpX * dist * CURVE_HEIGHT_FACTOR;
+                float cp1y = prevEndY + dy/3 + perpY * dist * CURVE_HEIGHT_FACTOR;
+                float cp2x = prevEndX + dx*2/3 + perpX * dist * CURVE_HEIGHT_FACTOR;
+                float cp2y = prevEndY + dy*2/3 + perpY * dist * CURVE_HEIGHT_FACTOR;
+                
+                drawBezierCurve(prevEndX, prevEndY, cp1x, cp1y, cp2x, cp2y, startX, startY);
+            } else {
+                sline(prevEndX, prevEndY, startX, startY);
+            }
+            
+            // Draw the actual path
             stroke(i < svgPathIndex || (i == svgPathIndex && currentCommand != null) ? penColor : plotColor);
             beginShape();
             for (int j = 0; j < p.size(); j++) {
@@ -139,16 +207,41 @@ class SvgPlot extends Plot {
                     // Stop drawing at current line for current path
                     break;
                 }
-                vertex(scaleX(p.getPoint(j).x * scaleX + homeX + offX), scaleY(p.getPoint(j).y * scaleY + homeY + offY));
+                vertex(scaleX(p.getPoint(j).x * scaleX + homeX + offX), 
+                       scaleY(p.getPoint(j).y * scaleY + homeY + offY));
             }
             endShape();
-            lastX = p.last().x;
-            lastY = p.last().y;
+            
+            // Update previous end point for next curve
+            prevEndX = p.last().x * scaleX + homeX + offX;
+            prevEndY = p.last().y * scaleY + homeY + offY;
         }
-
+        
+        // Draw final return to home
         stroke(rapidColor);
-        sline(lastX * scaleX + homeX + offX, lastY * scaleY + homeY + offY, homeX, homeY);
-
+        float dx = homeX - prevEndX;
+        float dy = homeY - prevEndY;
+        float dist = sqrt(dx*dx + dy*dy);
+        
+        if (dist > 0.01) {
+            float mpx = (prevEndX + homeX) / 2;
+            float mpy = (prevEndY + homeY) / 2;
+            
+            // Calculate perpendicular vector
+            float perpX = -dy / dist;
+            float perpY = dx / dist;
+            
+            // Control points
+            float cp1x = prevEndX + dx/3 + perpX * dist * CURVE_HEIGHT_FACTOR;
+            float cp1y = prevEndY + dy/3 + perpY * dist * CURVE_HEIGHT_FACTOR;
+            float cp2x = prevEndX + dx*2/3 + perpX * dist * CURVE_HEIGHT_FACTOR;
+            float cp2y = prevEndY + dy*2/3 + perpY * dist * CURVE_HEIGHT_FACTOR;
+            
+            drawBezierCurve(prevEndX, prevEndY, cp1x, cp1y, cp2x, cp2y, homeX, homeY);
+        } else {
+            sline(prevEndX, prevEndY, homeX, homeY);
+        }
+        
         // Draw current command movement
         super.drawCurrentCommand();
     }
