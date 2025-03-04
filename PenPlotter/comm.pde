@@ -10,6 +10,10 @@
     int okCount = 0;
     boolean initSent;
 
+    // inQueue variables for buffering on MCU
+    int inQueue = 0;
+    final int MAX_IN_QUEUE = 8;
+
     public void listPorts() {
         //  initialize your serial port and set the baud rate to 9600
 
@@ -224,56 +228,116 @@
         }
     }
 
-    public void send(String msg) {
+    // public void send(String msg) {
 
-        if (okCount == 0)
-            oksend(msg);
-        else
-            queue(msg);
+    //     if (okCount == 0)
+    //         oksend(msg);
+    //     else
+    //         queue(msg);
+    // }
+
+    // Updated send method to handle buffering on the MCU
+    public void send(String msg) {
+        if (myPort == null) return; // not connected
+        buf.add(msg);
+        tryToSend();
     }
 
+    private void tryToSend() {
+        while (inQueue < MAX_IN_QUEUE && !buf.isEmpty()) {
+            String nextCmd = buf.remove(0);
+            oksend(nextCmd);
+            inQueue++;
+        }
+    }
+
+    // public void oksend(String msg) {
+    //     print(msg);
+
+    //     if (myPort != null) {
+    //         myPort.write(msg);
+    //         lastCmd = msg;
+    //         okCount--;
+    //         myTextarea.setText(" " + msg);
+    //     }
+    // }
+
+    // public void serialEvent() {
+
+     
+    //     if (myPort == null || myPort.available() <= 0) return;
+
+
+    //     val = myPort.readStringUntil('\n');
+    //     if (val != null) {
+    //         val = trim(val);
+    //         if (!val.contains("wait"))
+    //             println(val);
+                
+    //         if (val.contains("wait") || val.contains("echo"))
+    //         {
+    //             okCount = 0;
+    //             if(!initSent)
+    //               initArduino();
+    //             else
+    //               nextMsg();
+    //         }          
+    //         else if(val.contains("Resend") && lastCmd != null)
+    //         {
+    //           okCount=0;
+    //           oksend(lastCmd);
+    //         }            
+    //         else if (val.contains("ok")) {
+    //             okCount=0;
+    //             nextMsg();
+    //         }
+    //     }
+    // }
+    
     public void oksend(String msg) {
         print(msg);
-
         if (myPort != null) {
             myPort.write(msg);
             lastCmd = msg;
-            okCount--;
             myTextarea.setText(" " + msg);
         }
     }
 
     public void serialEvent() {
-
-     
         if (myPort == null || myPort.available() <= 0) return;
-
-
+        
         val = myPort.readStringUntil('\n');
-        if (val != null) {
-            val = trim(val);
-            if (!val.contains("wait"))
-                println(val);
-                
-            if (val.contains("wait") || val.contains("echo"))
-            {
-                okCount = 0;
-                if(!initSent)
-                  initArduino();
-                else
-                  nextMsg();
-            }          
-            else if(val.contains("Resend") && lastCmd != null)
-            {
-              okCount=0;
-              oksend(lastCmd);
-            }            
-            else if (val.contains("ok")) {
-                okCount=0;
-                nextMsg();
+        if (val == null) return;
+        
+        val = trim(val);
+        println(val);
+        
+        if (val.contains("wait") || val.contains("echo")) {
+            // Reset queue count if firmware signals wait/echo
+            inQueue = 0;
+            if (!initSent)
+                initArduino();
+            else
+                tryToSend();
+        }
+        else if (val.contains("Resend") && lastCmd != null) {
+            // Resend last command and reset in-flight counter
+            inQueue = 0;
+            oksend(lastCmd);
+            inQueue++;
+        }
+        else if (val.contains("ok")) {
+            // A command was processed: decrement inQueue and try sending more
+            if (inQueue > 0) inQueue--;
+            tryToSend();
+            
+            // If all commands have been acknowledged and plotting is in progress, continue plotting
+            if (buf.isEmpty() && inQueue == 0 && currentPlot.isPlotting()) {
+                currentPlot.nextPlot(true);
+                tryToSend();
             }
         }
     }
-    
+
     public void export(File file){}
 }

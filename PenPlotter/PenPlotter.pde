@@ -166,7 +166,7 @@ import java.awt.BorderLayout;
     boolean useSolenoid = false; //If used solinoid as lifting pen
     int solenoidUP = 1;//Solinoid on or off when UP 
     int servoDwell = 250;
-    int servoUpValue = 2350;
+    int servoUpValue = 3350;
     int servoDownValue = 1500;
     int rate;
     int tick;

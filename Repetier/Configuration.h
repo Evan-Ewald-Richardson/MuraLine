@@ -1084,7 +1084,7 @@ Servos are controlled by a pulse width normally between 500 and 2500 with 1500ms
 WARNING: Servos can draw a considerable amount of current. Make sure your system can handle this or you may risk your hardware!
 */
 
-#define FEATURE_SERVO false
+#define FEATURE_SERVO true
 // Servo pins on a RAMPS board are 11,6,5,4
 #define SERVO0_PIN 11
 #define SERVO1_PIN 6
