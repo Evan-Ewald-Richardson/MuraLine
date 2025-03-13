@@ -154,8 +154,6 @@ JFileChooser fc;
             props.setProperty("machine.width",""+machineWidth);
             props.setProperty("machine.height",""+machineHeight);
             props.setProperty("machine.homepoint.y",""+homeY);
-            props.setProperty("machine.motors.mmPerRev",""+mmPerRev);
-            props.setProperty("machine.motors.stepsPerRev",""+stepsPerRev);
 
             props.setProperty("machine.penSize",""+penWidth );
             props.setProperty("svg.pixelsPerInch",""+svgDpi);
@@ -289,8 +287,6 @@ JFileChooser fc;
                                                {
                                                    if(imageMode == HATCH)
                                                        currentPlot = hatchPlot;
-                                                   else if(imageMode == DIAMOND)
-                                                       currentPlot = diamondPlot;
                                                    else if(imageMode == SQUARE)
                                                        currentPlot = squarePlot;
                                                    else

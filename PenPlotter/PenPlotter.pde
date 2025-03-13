@@ -72,10 +72,6 @@ import java.awt.BorderLayout;
 
     int speedValue = 500;     // speed of motors controlled with speed slider
 
-
-    float stepsPerRev = 6400; // number of steps per rev includes microsteps
-    float mmPerRev = 80;      // mm per rev
-
     float zoomScale = 0.75f;   // screen scale controlle with mouse wheel
     float shortestSegment = 0;    // cull out svg segments shorter that is.
 
@@ -145,7 +141,6 @@ import java.awt.BorderLayout;
     PImage simage;
     PImage oimg;
     StipplePlot stipplePlot = new StipplePlot();
-    DiamondPlot diamondPlot = new DiamondPlot();
     HatchPlot hatchPlot = new HatchPlot();
     SquarePlot squarePlot = new SquarePlot();
     float svgDpi = 72;
@@ -163,8 +158,6 @@ import java.awt.BorderLayout;
     long lastTime = millis();
     long freeMemory;
     long totalMemory;
-    boolean useSolenoid = false; //If used solinoid as lifting pen
-    int solenoidUP = 1;//Solinoid on or off when UP 
     int servoDwell = 250;
     int servoUpValue = 2350;
     int servoDownValue = 1500;
@@ -227,8 +220,6 @@ import java.awt.BorderLayout;
         homeX = machineWidth/2;
 
         homeY = Integer.parseInt(props.getProperty("machine.homepoint.y"));
-        mmPerRev = Float.parseFloat(props.getProperty("machine.motors.mmPerRev"));
-        stepsPerRev = Float.parseFloat(props.getProperty("machine.motors.stepsPerRev"));
 
         currentX = homeX;
         currentY = homeY;
@@ -534,7 +525,6 @@ void initLogging()
 
     public void setPenWidth(float width) {
         penWidth = width;
-        com.sendPenWidth();
 
         if (!currentPlot.isPlotting()) {
             int levels = (int) ((float) (pixelSize) / penWidth);
@@ -640,15 +630,6 @@ void initLogging()
         if (jogY != 0)
         {
             com.moveDeltaY(jogY);
-        }
-
-        if (jogMotorA != 0)
-        {
-            com.moveDeltaA(jogMotorA);
-        }
-        if (jogMotorB != 0)
-        {
-            com.moveDeltaB(jogMotorB);
         }
         
         com.serialEvent();

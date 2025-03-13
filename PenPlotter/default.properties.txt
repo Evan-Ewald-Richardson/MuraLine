@@ -1,7 +1,7 @@
 #Polar Properties
 #Thu Sep 10 13:21:20 CDT 2015
 cnc.safeHeight=500
-com.baudrate=115200
+com.baudrate=250000
 com.serialPort=1
 image.cropBottom=210
 image.cropLeft=130
@@ -12,8 +12,6 @@ image.scale=1.0
 machine.height=3550
 machine.homepoint.y=1000
 machine.motors.maxSpeed=1010
-machine.motors.mmPerRev=76
-machine.motors.stepsPerRev=517
 machine.offX=0
 machine.offY=0
 machine.penSize=30

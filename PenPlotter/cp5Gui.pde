@@ -195,11 +195,6 @@
         addButton("right", "", leftMargin+56, posY).onPress(press).onRelease(release).setSize(30, 24);
         addButton("down", "", leftMargin+36, posY+=30).onPress(press).onRelease(release).setSize(30, 24);
 
-        addButton("motorACW", "A", leftMargin + 16, posY += ySpace).onPress(press).onRelease(release).setSize(30, 24);
-        addButton("motorBCW", "B", leftMargin + 56, posY).onPress(press).onRelease(release).setSize(30, 24);
-        addButton("motorACCW", "A", leftMargin + 16, posY += ySpace).onPress(press).onRelease(release).setSize(30, 24);
-        addButton("motorBCCW", "B", leftMargin + 56, posY).onPress(press).onRelease(release).setSize(30, 24);
-
 
         loadButton = addButton("load", "Load", leftMargin, posY+=ySpace);
         plotButton = addButton("plot", "Plot", leftMargin, posY+=ySpace);
@@ -280,14 +275,6 @@
                 jog(true, 0, -1);
             else if (b.getName().equals("down"))
                 jog(true, 0, 1);
-            else if (b.getName().equals("motorACW"))
-                jogMotor(true, 1, 1);
-            else if (b.getName().equals("motorACCW"))
-                jogMotor(true, 1, -1);
-            else if (b.getName().equals("motorBCW"))
-                jogMotor(true, 2, 1);
-            else if (b.getName().equals("motorBCCW"))
-                jogMotor(true, 2, -1);
         }
     };
 
@@ -302,14 +289,6 @@
                 jog(false, 0, 0);
             else if (b.getName().equals("down"))
                 jog(false, 0, 0);
-            else if (b.getName().equals("motorACW"))
-                jogMotor(false, 1, 0);
-            else if (b.getName().equals("motorACCW"))
-                jogMotor(false, 1, 0);
-            else if (b.getName().equals("motorBCW"))
-                jogMotor(false, 2, 0);
-            else if (b.getName().equals("motorBCCW"))
-                jogMotor(false, 2, 0);
         }
     };
 
@@ -331,6 +310,7 @@
         }
     };
 
+
     public void controlEvent(ControlEvent theEvent) {
 
        if (theEvent.isController()) {
@@ -347,9 +327,7 @@
                 imageMode = (int)theEvent.getController().getValue();
                 println("Image Mode = " + imageMode);
 
-                if(imageMode == DIAMOND)
-                    currentPlot = diamondPlot;
-                else if(imageMode == HATCH)
+                if(imageMode == HATCH)
                     currentPlot = hatchPlot;
                 else if(imageMode == SQUARE)
                     currentPlot = squarePlot;
@@ -370,7 +348,7 @@
 
     public void setHome()
     {
-        currentPlot.sendImmediateCommand("M1 Y" + homeY + "\n");
+        com.sendHome();
     }
 
     public void plotDone()

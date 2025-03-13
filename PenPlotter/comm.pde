@@ -5,7 +5,7 @@ class Com {
     ArrayList<String> buf = new ArrayList<String>();
 
     ArrayList<String> comPorts = new ArrayList<String>();
-    long baudRate = 115200;
+    long baudRate = 250000;
     int lastPort;
     int okCount = 0;
     boolean initSent;
@@ -75,14 +75,6 @@ class Com {
         updatePos(currentX, currentY + y);
     }
 
-    public void moveDeltaA(float a) {
-        send("G350" + " P1" + "S" + a + "\n");
-    }
-
-    public void moveDeltaB(float b) {
-        send("G350" + " P2" + "S" + b + "\n");
-    }
-
     public void sendMoveG0(float x, float y) {
         send("G0 X" + x + " Y" + y + "\n");
         updatePos(x, y);
@@ -118,7 +110,7 @@ class Com {
     }
 
     public void sendHome() {
-        send("M1 Y" + homeY + "\n");
+        send("G92 X" + homeX + "Y" + homeY + "\n");
         updatePos(homeX, homeY);
     }
 
@@ -126,47 +118,42 @@ class Com {
         send("G0 F" + speedValue + "\n");
     }
 
-    public void sendPenWidth() {
-        send("M4 E" + penWidth + "\n");
-    }
+// M665: Set POLARGRAPH settings
+// Parameters:
+//    S[segments]  - Segments-per-second - NOT PARAMETERISED YET
+//    L[left]      - Work area minimum X
+//    R[right]     - Work area maximum X
+//    T[top]       - Work area maximum Y
+//    B[bottom]    - Work area minimum Y
+//    H[length]    - Maximum belt length
 
     public void sendSpecs() {
-        send("M4 X" + machineWidth + " E" + penWidth + " S" + stepsPerRev + " P" + mmPerRev + "\n");
+        send(
+            "M665"
+            + "S" + "5"
+            + "L0" 
+            + "R" + machineWidth 
+            + "T0"
+            + "B" + machineHeight
+            + "H" + Math.sqrt((machineWidth * machineWidth) + (machineHeight * machineHeight)) 
+            + "\n"
+        );
     }
     
     public void sendPenUp() {
-     if (useSolenoid == true) {
-       send("G4 P"+servoDwell+"\n");//pause
-       if (solenoidUP == 1) {
-          send("M107"+"\n");
-       } else {
-         send("M106"+"\n");
-       }
-       send("G4 P"+servoDwell+"\n");//pause
-     } else {
-      send("G4 P"+servoDwell+"\n");//pause
-      send("M340 P3 S"+servoUpValue+"\n");
-      send("G4 P"+servoDwell+"\n");
-     }
-     showPenDown();
+        send("G4 P"+servoDwell+"\n");//pause
+        send("M280 P0 S"+servoUpValue+"\n");
+        send("G4 P"+servoDwell+"\n");
+
+        showPenDown();
     }
     
 
     public void sendPenDown() {
-    if (useSolenoid == true) {
-         send("G4 P"+servoDwell+"\n");//pause
-         if (solenoidUP == 1) {
-            send("M106"+"\n");
-         } else {
-           send("M107"+"\n");
-         }
-         send("G4 P"+servoDwell+"\n");//pause
-       } else {
         send("G4 P"+servoDwell+"\n");
-        send("M340 P3 S"+servoDownValue+"\n");
+        send("M280 P0 S"+servoDownValue+"\n");
         send("G4 P"+servoDwell+"\n");
-      }
-      showPenUp();
+        showPenUp();
     }
 
     public void sendAbsolute() {
@@ -182,11 +169,6 @@ class Com {
     {
       send("G21\n");
     }
-
-    public void sendPixel(float da, float db, int pixelSize, int shade, int pixelDir) {
-        send("M3 X" + da + " Y" + db + " P" + pixelSize + " S" + shade + " E" + pixelDir + "\n");
-    }
-
 
     public void initArduino() {
         initSent = true;

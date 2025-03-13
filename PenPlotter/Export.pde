@@ -79,11 +79,18 @@ class Export extends Com
         send("G0 F" + speedValue + "\n");
     }
 
-    public void sendPenWidth() {}
-
     public void sendSpecs() {
       if(!cnc)
-        send("M4 X" + machineWidth + " E" + penWidth + " S" + stepsPerRev + " P" + mmPerRev + "\n");
+        send(
+          "M665"
+          + "S" + "5"
+          + "L0" 
+          + "R" + machineWidth 
+          + "T0" 
+          + "B" + machineHeight 
+          + "H" + Math.sqrt((machineWidth * machineWidth) + (machineHeight * machineHeight)) 
+          + "\n"
+        );
 
     }
 
@@ -92,19 +99,9 @@ class Export extends Com
           send("G0 Z"+cncSafeHeight+"\n");
         else
         {
-           if (useSolenoid == true) {
-             send("G4 P"+servoDwell+"\n");//pause
-             if (solenoidUP == 1) {
-                send("M107"+"\n");//OFF
-             } else {
-               send("M106"+"\n");//ON
-             }
-             send("G4 P"+servoDwell+"\n");//pause
-           } else {
-            send("G4 P"+servoDwell+"\n");//pause
-            send("M340 P3 S"+servoUpValue+"\n");
-            send("G4 P"+servoDwell+"\n");
-           }
+          send("G4 P"+servoDwell+"\n");//pause
+          send("M280 P0 S"+servoUpValue+"\n");
+          send("G4 P"+servoDwell+"\n");
         }
     }
 
@@ -113,19 +110,9 @@ class Export extends Com
         send("G0 Z0\n");
       else
       {
-        if (useSolenoid == true) {
-             send("G4 P"+servoDwell+"\n");//pause
-             if (solenoidUP == 1) {
-                send("M106"+"\n");//ON
-             } else {
-               send("M107"+"\n");//OFF
-             }
-             send("G4 P"+servoDwell+"\n");//pause
-           } else {
-            send("G4 P"+servoDwell+"\n");
-            send("M340 P3 S"+servoDownValue+"\n");
-            send("G4 P"+servoDwell+"\n");
-           }
+        send("G4 P"+servoDwell+"\n");
+        send("M280 P0 S"+servoDownValue+"\n");
+        send("G4 P"+servoDwell+"\n");
       }
     }
 
@@ -141,9 +128,6 @@ class Export extends Com
     {
       send("G21\n");
     }
-
-    public void sendPixel(float da, float db, int pixelSize, int shade, int pixelDir) {}
-
 
     public void initArduino() {}
 

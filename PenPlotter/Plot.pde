@@ -158,7 +158,6 @@ class Plot {
             queueGcode("G90\n"); // Absolute positioning
             queueGcode("G21\n"); // Use millimeters
             queueGcode("G0 F" + speedValue + "\n"); // Set speed
-            queueGcode("M4 X" + machineWidth + " E" + penWidth + " S" + stepsPerRev + " P" + mmPerRev + "\n"); // Machine specs
             queueGcode("M1 Y" + homeY + "\n"); // Home position
             
             // Generate all path GCODE commands
