@@ -43,41 +43,35 @@ import java.awt.Dimension;
 import java.awt.Toolkit;
 import java.awt.BorderLayout;
 
-    final static String ICON  = "icons/penDown.png";
-    final static String TITLE = "PenPlotter v0.8";
+    final static String ICON  = "icons/MuraLine.png";
+    final static String TITLE = "MuraLine V1.0";
 
     ControlP5 cp5;
     Handle[] handles;
-    float cncSafeHeight = 5;  // safe height for cnc export
     float flipX = 1;          // mirror around X if set to -1
     float flipY = 1;          // mirror around Y if set to -1
     float scaleX = 1;         // combined scale svgScale*userScale*flipX
     float scaleY = 1;         // combined scale svgScale*userScale*flipY
     float userScale = 1;      // user controlled scale from slider
 
-
     int jogX;                 // set if jog X button pressed
     int jogY;                 // set if jog Y button pressed
 
-    int jogMotorA;        // set if jog A button pressed
-    int jogMotorB;        // set if jog B button pressed
-
-    int machineWidth = 840;   // Width of machine in mm
-    int homeX = machineWidth/2; //X Home position
-    int machineHeight = 800;    //machine Height only used to draw page height
-    int homeY = 250;          // location of homeY good location is where gondola hangs with motor power off
+    int machineWidth;   // Width of machine in mm
+    int homeX;          //X Home position
+    int machineHeight;  //machine Height only used to draw page height
+    int homeY;          // location of homeY good location is where gondola hangs with motor power off
 
     float currentX = homeX;   // X location of gondola
     float currentY = homeY;   // X location of gondola
 
-    int speedValue = 500;     // speed of motors controlled with speed slider
+    int speedValue;     // speed of motors controlled with speed slider
 
     float zoomScale = 0.75f;   // screen scale controlle with mouse wheel
     float shortestSegment = 0;    // cull out svg segments shorter that is.
 
-
     int menuWidth = 110;
-    int originX = (machineWidth+menuWidth)/2; // screen X offset of page will change if page dragged
+    int originX = 475; // screen X offset of page will change if page dragged
     int originY = 200;                        // screen Y offset of page will change if page dragged
 
     int oldOriginX;          // old location page when drag starts
@@ -112,27 +106,27 @@ import java.awt.BorderLayout;
     boolean draw = true;
 
 
-    int pageColor = color(255, 255, 255);
-    int machineColor = color(250,250,250);
-    int backgroundColor = color(192, 192, 192);
-    int gridColor = color(128, 128, 128);
-    int cropColor = color(0, 255, 0);
-    int textColor = color(0, 0, 255);
-    int gondolaColor = color(0, 0, 0,128);
-    int statusColor = color(0, 0, 0);
-    int motorOnColor = color(255, 0, 0);
-    int motorOffColor = color(0, 0, 255);
+    int pageColor = color(255, 255, 255); // rgb(255, 255, 255)
+    int machineColor = color(250,250,250); // rgb(250, 250, 250)
+    int backgroundColor = color(192, 192, 192); // rgb(192, 192, 192)
+    int gridColor = color(128, 128, 128); // rgb(128, 128, 128)
+    int cropColor = color(0, 255, 0); // rgb(0, 255, 0)
+    int textColor = color(0, 0, 255); // rgb(0, 0, 255)
+    int gondolaColor = color(0, 0, 0,128); // rgba(0, 0, 0, 0.5)
+    int statusColor = color(0, 0, 0); // rgb(0, 0, 0)
+    int motorOnColor = color(255, 0, 0); // rgb(255, 0, 0)
+    int motorOffColor = color(0, 0, 255); // rgb(0, 0, 255)
     
-    int penColor = color(0, 0, 0,255);    
-    int previewColor = color(0,0,0,255);
-    int whilePlottingColor = color(0,0,0,64);
-    int rapidColor = color(0,255,0,64);
+    int penColor = color(0, 0, 0,255); // rgba(0, 0, 0, 1)  
+    int previewColor = color(0,0,0,255); // rgba(0, 0, 0, 1)
+    int whilePlottingColor = color(0,0,0,64); // rgba(0, 0, 0, 0.25)
+    int rapidColor = color(0,255,0,64); // rgba(0, 255, 0, 0.25)
     
-    int buttonPressColor = color(227, 230, 255);
-    int buttonHoverColor = color(201, 206, 255);
-    int buttonUpColor = color(115, 117, 216);
-    int buttonTextColor = color(0,0,0);
-    int buttonBorderColor = color(0,0,0);
+    int buttonPressColor = color(227, 230, 255); // rgb(227, 230, 255)
+    int buttonHoverColor = color(201, 206, 255); // rgb(201, 206, 255)
+    int buttonUpColor = color(115, 117, 216);  // rgb(115, 117, 216)
+    int buttonTextColor = color(0,0,0); // rgb(0, 0, 0)
+    int buttonBorderColor = color(0,0,0); // rgb(0, 0, 0)
 
     Plot currentPlot = new Plot();
     float lastX = 0;
@@ -141,8 +135,6 @@ import java.awt.BorderLayout;
     PImage simage;
     PImage oimg;
     StipplePlot stipplePlot = new StipplePlot();
-    HatchPlot hatchPlot = new HatchPlot();
-    SquarePlot squarePlot = new SquarePlot();
     float svgDpi = 72;
     float svgScale = 25.4f / svgDpi;
 
@@ -150,11 +142,8 @@ import java.awt.BorderLayout;
     int pixelSize = 8;
     int range = 255 / (int) ((float) (pixelSize) / penWidth);
 
-    int HATCH = 0;
-    int DIAMOND = 1;
-    int SQUARE = 2;
-    int STIPPLE = 3;
-    int imageMode = HATCH;
+    int STIPPLE = 0;
+    int imageMode = STIPPLE;
     long lastTime = millis();
     long freeMemory;
     long totalMemory;
@@ -188,26 +177,16 @@ import java.awt.BorderLayout;
         super.exit();
     }
 
-    //public void changeAppIcon(PImage img) {
-    //    final PGraphics pg = createGraphics(16, 16, JAVA2D);
-
-    //    pg.beginDraw();
-    //    pg.image(img, 0, 0, 16, 16);
-    //    pg.endDraw();
-    //    frame.setIconImage(pg.image);
-    //}
-
     public void changeAppTitle(String title) {
-        //surface.setTitle(title);
         surface.setTitle(title);
     }
 
     public void setup() {
 
         size(840, 680, JAVA2D);
-        //surface.setResizable(true);
         surface.setResizable(true);
-        //changeAppIcon( loadImage(ICON) );
+        PImage icon = loadImage(ICON);
+        surface.setIcon(icon);
         changeAppTitle(TITLE);
         prepareExitHandler();
 
@@ -218,7 +197,6 @@ import java.awt.BorderLayout;
         machineWidth = Integer.parseInt(props.getProperty("machine.width"));
         machineHeight = Integer.parseInt(props.getProperty("machine.height"));
         homeX = machineWidth/2;
-
         homeY = Integer.parseInt(props.getProperty("machine.homepoint.y"));
 
         currentX = homeX;
@@ -231,13 +209,8 @@ import java.awt.BorderLayout;
 
         currentFileName = props.getProperty("svg.name");
 
-        cncSafeHeight = Float.parseFloat(props.getProperty("cnc.safeHeight"));
-
 
         com.baudRate = Long.parseLong(props.getProperty("com.baudrate"));
-        //todo lastPort not used
-
-        com.lastPort = Integer.parseInt(props.getProperty("com.serialPort"));
 
         offX = Integer.parseInt(props.getProperty("machine.offX"));
         offY = Integer.parseInt(props.getProperty("machine.offY"));
@@ -406,13 +379,11 @@ void initLogging()
             machineWidth = x;
             homeX = machineWidth / 2;
             handles[2].x = homeX;
-            //makeHatchImage();
 
         }
         else if(id.equals("mHeight")) {
             machineHeight = y;
             handles[1].y = y / 2;
-           // makeHatchImage();
         }
         else if(id.equals("pWidth"))
         {

@@ -86,7 +86,6 @@ class GcodePlot extends Plot {
 
             String[] tokens = gcodeData.get(i).split(" ");
             for (String token : tokens) {
-                // Log.d("cnc",token);
 
                 if (token.startsWith("G"))
                     cmd = token;
@@ -176,7 +175,6 @@ class GcodePlot extends Plot {
                 cx = (float) offsetX;
                 cy = (float) offsetY;
             }
-            //        Log.d("cnc","R = "+R+" sx = "+sx+" sy = "+sy+" cx = "+cx+" cy = "+cy+" ex = "+ex+" ey = "+ey);
             float[] center = new float[2];
             center[0] = cx;
             center[1] = cy;
@@ -222,7 +220,6 @@ class GcodePlot extends Plot {
             if (radius == 0) {
                 radius = Math.sqrt(Math.pow(sx - cx, 2.0f) + Math.pow(sy - cy, 2.0f));
             }
-            //        Log.d("cnc","R1 = "+R+" radius = "+radius+" cx = "+cx+" cy = "+cy);
             // Calculate angles from center.
             double startAngle = getAngle(cx, cy, sx, sy);
             double endAngle = getAngle(cx, cy, ex, ey);

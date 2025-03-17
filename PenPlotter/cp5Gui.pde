@@ -32,7 +32,7 @@
     MyButton penUpButton;
     MyButton noDrawButton;
     
-    String[] filters = {"Hatch","Diamond","Square","Stipple"};
+    String[] filters = {"Stipple"};
 
     class MyButton extends Button {
         public PImage img;
@@ -163,7 +163,7 @@
 
         filterDropList = cp5.addDropdownList("filterDropList")
                 .setPosition(imageX+20, imageY+imageHeight+20)
-                .setCaptionLabel("Hatch")
+                .setCaptionLabel("Stipple")
                 .onEnter(toFront)
                 .onLeave(close)
                 .setBackgroundColor(buttonUpColor)
@@ -207,7 +207,7 @@
 
         scaleSlider = addSlider(leftMargin,posY += ySpace+10,"scale", "SCALE", 0.1f, 5, userScale);
 
-        speedSlider = addSlider(leftMargin,posY += ySpace/2,"speedChanged", "SPEED", 100, 6000, 500);
+        speedSlider = addSlider(leftMargin,posY += ySpace/2,"speedChanged", "SPEED", 100, 60000, 2000);
         speedSlider.onRelease(speedrelease)
                 .onReleaseOutside(speedrelease);
 
@@ -226,7 +226,6 @@
         addButton("goHome", "Go Home", leftMargin, posY+=ySpace);
         addButton("off", "Motors Off", leftMargin, posY+=ySpace);
         addButton("save", "Save", leftMargin, posY+=ySpace);
-        addButton("export", "Export",leftMargin, posY+=ySpace);
         noDrawButton = addButton("nodraw", "No Draw",leftMargin, posY+=ySpace);
 
         stipplePlot.init();
@@ -327,11 +326,7 @@
                 imageMode = (int)theEvent.getController().getValue();
                 println("Image Mode = " + imageMode);
 
-                if(imageMode == HATCH)
-                    currentPlot = hatchPlot;
-                else if(imageMode == SQUARE)
-                    currentPlot = squarePlot;
-                else if(imageMode == STIPPLE)
+                if(imageMode == STIPPLE)
                 {
                     currentPlot = stipplePlot;
                     currentPlot.load();
@@ -497,7 +492,7 @@
         currentPlot.sendImmediateCommand(cmd);
         cmd = "G0 Z5\n";  // Pen up
         currentPlot.sendImmediateCommand(cmd);
-        cmd = "G0 X" + homeX + " Y" + homeY + "\n";
+        cmd = "G0 X" + homeX + " Y" + (-homeY) + "\n";
         currentPlot.sendImmediateCommand(cmd);
     }
 
@@ -511,11 +506,6 @@
         saveProperties();
     }
 
-    public void export()
-    {
-        if(currentPlot.isLoaded())
-          exportGcode();
-    }
 
     public void speedChanged(int speed)
     {
@@ -553,24 +543,5 @@
             currentPlot.sendImmediateCommand("G90\n"); // Absolute positioning
             jogX = 0;
             jogY = 0;
-        }
-    }
-
-    public void jogMotor(boolean jog, int motor, int step)
-    {
-        if (jog) {
-            if (motor == 1) {
-                currentPlot.sendImmediateCommand("G91\n"); // Relative positioning
-                jogMotorA = step;
-            }
-            else if (motor == 2) {
-                currentPlot.sendImmediateCommand("G91\n"); // Relative positioning
-                jogMotorB = step;
-            }
-        } else
-        {
-            currentPlot.sendImmediateCommand("G90\n"); // Absolute positioning
-            jogMotorA = 0;
-            jogMotorB = 0;
         }
     }

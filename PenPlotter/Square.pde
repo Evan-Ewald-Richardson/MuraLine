@@ -105,7 +105,6 @@
             simage.copy(oimg, (x1 - ox) * width / imageWidth, (y1 - oy) * height / imageHeight, cropWidth, cropHeight, 0, 0, simage.width, simage.height);
             simage.loadPixels();
             if (simage != null) {
-                // hatchImage = createGraphics(simage.width,simage.height);
                 calculate();
             }
         }

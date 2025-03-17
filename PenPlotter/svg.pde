@@ -102,7 +102,7 @@ class SvgPlot extends Plot {
                 float y = path.getPoint(j).y * scaleY + homeY + offY;
                 
                 if (!Float.isNaN(x) && !Float.isNaN(y)) {
-                    queueGcode("G1 X" + x + " Y" + y + "\n", i, j);
+                    queueGcode("G1 X" + x + " Y" + (-y) + "\n", i, j);
                 }
             }
             

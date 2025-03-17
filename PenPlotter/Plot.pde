@@ -158,7 +158,7 @@ class Plot {
             queueGcode("G90\n"); // Absolute positioning
             queueGcode("G21\n"); // Use millimeters
             queueGcode("G0 F" + speedValue + "\n"); // Set speed
-            queueGcode("M1 Y" + homeY + "\n"); // Home position
+            // queueGcode("M1 Y" + homeY + "\n"); // Home position
             
             // Generate all path GCODE commands
             generatePathGcode();
@@ -197,7 +197,7 @@ class Plot {
                 Float.isNaN(end.x) || Float.isNaN(end.y)) {
                 println("Warning: Invalid coordinates detected in G0 move, skipping curve generation");
                 if (!Float.isNaN(end.x) && !Float.isNaN(end.y)) {
-                    queueGcode("G0 X" + end.x + " Y" + end.y + "\n", pathIndex, lineIndex);
+                    queueGcode("G0 X" + end.x + " Y" + (-end.y) + "\n", pathIndex, lineIndex);
                 }
                 return;
             }
@@ -209,7 +209,7 @@ class Plot {
             
             // Skip if distance is too small
             if (dist < 0.01) {
-                queueGcode("G0 X" + end.x + " Y" + end.y + "\n", pathIndex, lineIndex);
+                queueGcode("G0 X" + end.x + " Y" + (-end.y) + "\n", pathIndex, lineIndex);
                 return;
             }
             
@@ -242,7 +242,7 @@ class Plot {
                 
                 // Validate calculated points
                 if (!Float.isNaN(px) && !Float.isNaN(py)) {
-                    queueGcode("G0 X" + px + " Y" + py + "\n", pathIndex, lineIndex);
+                    queueGcode("G0 X" + px + " Y" + (-py) + "\n", pathIndex, lineIndex);
                 }
             }
         }
@@ -264,13 +264,13 @@ class Plot {
         // Called at the start of path generation to set up initial state
         protected void generatePathSetup() {
             queueGcode("G0 Z5\n"); // Pen up
-            queueGcode("G0 X" + homeX + " Y" + homeY + "\n");
+            queueGcode("G0 X" + homeX + " Y" + (-homeY) + "\n");
         }
         
         // Called at the end of path generation to cleanup/return home
         protected void generatePathCleanup() {
             queueGcode("G0 Z5\n"); // Pen up
-            queueGcode("G0 X" + homeX + " Y" + homeY + "\n");
+            queueGcode("G0 X" + homeX + " Y" + (-homeY) + "\n");
         }
         
         public void plottingStopped() {

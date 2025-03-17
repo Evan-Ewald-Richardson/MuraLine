@@ -6,7 +6,6 @@ class Com {
 
     ArrayList<String> comPorts = new ArrayList<String>();
     long baudRate = 250000;
-    int lastPort;
     int okCount = 0;
     boolean initSent;
 
@@ -41,7 +40,6 @@ class Com {
         clearQueue();
         try {
             myPort = new processing.serial.Serial(applet, processing.serial.Serial.list()[port], (int) baudRate);
-            lastPort = port;
             println("connected");
             myPort.write("\n");
         } catch (Exception exp) {
@@ -71,37 +69,37 @@ class Com {
     }
 
     public void moveDeltaY(float y) {
-        send("G0 Y" + y + "\n");
+        send("G0 Y" + (-y) + "\n");
         updatePos(currentX, currentY + y);
     }
 
     public void sendMoveG0(float x, float y) {
-        send("G0 X" + x + " Y" + y + "\n");
+        send("G0 X" + x + " Y" + (-y) + "\n");
         updatePos(x, y);
     }
 
     public void sendMoveG1(float x, float y) {
-        send("G1 X" + x + " Y" + y + "\n");
+        send("G1 X" + x + " Y" + (-y) + "\n");
         updatePos(x, y);
     }
 
     public void sendG2(float x, float y, float i, float j) {
-        send("G2 X" + x + " Y" + y + " I" + i + " J" + j + "\n");
+        send("G2 X" + x + " Y" + (-y) + " I" + i + " J" + j + "\n");
         updatePos(x, y);
     }
     
     public void sendG2(float x, float y, float r) {
-        send("G2 X" + x + " Y" + y + " R" + r+"\n");
+        send("G2 X" + x + " Y" + (-y) + " R" + r+"\n");
         updatePos(x, y);
     }
 
     public void sendG3(float x, float y, float i, float j) {
-        send("G3 X" + x + " Y" + y + " I" + i + " J" + j + "\n");
+        send("G3 X" + x + " Y" + (-y) + " I" + i + " J" + j + "\n");
         updatePos(x, y);
     }
     
     public void sendG3(float x, float y, float r) {
-        send("G3 X" + x + " Y" + y + " R" + r+"\n");
+        send("G3 X" + x + " Y" + (-y) + " R" + r+"\n");
         updatePos(x, y);
     }
 
@@ -110,7 +108,7 @@ class Com {
     }
 
     public void sendHome() {
-        send("G92 X" + homeX + "Y" + homeY + "\n");
+        send("G92 X" + homeX + " Y" + (-homeY) + "\n");
         updatePos(homeX, homeY);
     }
 
@@ -128,16 +126,16 @@ class Com {
 //    H[length]    - Maximum belt length
 
     public void sendSpecs() {
-        send(
-            "M665"
-            + "S" + "5"
-            + "L0" 
-            + "R" + machineWidth 
-            + "T0"
-            + "B" + machineHeight
-            + "H" + Math.sqrt((machineWidth * machineWidth) + (machineHeight * machineHeight)) 
-            + "\n"
-        );
+        // send(
+        //     "M665"
+        //     + " S" + "5"
+        //     + " L0" 
+        //     + " R" + machineWidth 
+        //     + " T0" 
+        //     + " B" + (-machineHeight)
+        //     + " H" + Math.sqrt((machineWidth * machineWidth) + (machineHeight * machineHeight)) 
+        //     + "\n"
+        // );
     }
     
     public void sendPenUp() {
@@ -215,42 +213,31 @@ class Com {
         if (myPort != null) {
             myPort.write(msg);
             lastCmd = msg;
-            okCount--;
+            okCount++;
             myTextarea.setText(" " + msg);
         }
     }
 
     public void serialEvent() {
-
-     
         if (myPort == null || myPort.available() <= 0) return;
-
 
         val = myPort.readStringUntil('\n');
         if (val != null) {
             val = trim(val);
-            if (!val.contains("wait"))
-                println(val);
-                
-            if (val.contains("wait") || val.contains("echo"))
-            {
-                okCount = 0;
-                if(!initSent)
-                  initArduino();
-                else
-                  nextMsg();
+            println("Received: " + val); // Better logging
+            
+            if (val.contains("wait") || val.contains("echo")) {
             }          
-            else if(val.contains("Resend") && lastCmd != null)
-            {
-              okCount=0;
-              oksend(lastCmd);
+            else if(val.contains("Resend") && lastCmd != null) {
+                println("Resending command: " + lastCmd);
+                myPort.write(lastCmd);
             }            
             else if (val.contains("ok")) {
-                okCount=0;
+                okCount--; // CHANGE: Decrement instead of setting to 0
+                println("Command acknowledged. Remaining commands: " + okCount);
                 nextMsg();
             }
         }
     }
     
-    public void export(File file){}
 }
