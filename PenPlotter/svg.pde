@@ -73,25 +73,39 @@ class SvgPlot extends Plot {
             Path path = penPaths.get(i);
             if (path == null || path.size() < 2) continue;
             
-            // Calculate entry vector for this path
-            float entryX = path.getPoint(1).x * scaleX + machineWidth / 2 + offX;
-            float entryY = path.getPoint(1).y * scaleY + homeY + offY;
+            // Get the first two points to determine entry direction
             float startX = path.getPoint(0).x * scaleX + machineWidth / 2 + offX;
             float startY = path.getPoint(0).y * scaleY + homeY + offY;
+            float entryX = path.getPoint(1).x * scaleX + machineWidth / 2 + offX;
+            float entryY = path.getPoint(1).y * scaleY + homeY + offY;
             
-            // Calculate entry direction from first two points of path
-            PathVector entryVec = new PathVector(
-                startX, 
-                startY,
-                entryX - startX,
-                entryY - startY
-            );
+            // Create vector pointing from start to next point (represents path direction)
+            float pathDirX = entryX - startX;
+            float pathDirY = entryY - startY;
+            
+            // Calculate proper approach vector
+            // First, calculate the vector from lastPos to startPoint
+            float approachDirX = startX - lastPos.x;
+            float approachDirY = startY - lastPos.y;
+            float approachDist = sqrt(approachDirX * approachDirX + approachDirY * approachDirY);
+            
+            // Normalize
+            if (approachDist > 0.0001) {
+                approachDirX /= approachDist;
+                approachDirY /= approachDist;
+            }
+            
+            // Create the approach vector - position is lastPos, direction is toward start point
+            PathVector approachVec = new PathVector(lastPos.x, lastPos.y, approachDirX, approachDirY);
+            
+            // Create the entry vector - position is path start, direction is toward second point
+            PathVector entryVec = new PathVector(startX, startY, pathDirX, pathDirY);
             
             // Pen up before curved move
             queueGcode("G0 Z5\n", i, 0);
             
-            // Generate curved move using last position/vector and entry vector
-            queueCurvedG0Move(lastPos, entryVec, i, 0);
+            // Generate curved move using approach vector and entry vector
+            queueCurvedG0Move(approachVec, entryVec, i, 0);
             
             // Pen down for drawing
             queueGcode("G0 Z0\n", i, 0);

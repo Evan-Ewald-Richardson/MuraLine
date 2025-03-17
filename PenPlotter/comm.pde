@@ -9,6 +9,22 @@ class Com {
     int okCount = 0;
     boolean initSent;
 
+
+    public String sendTerminalCommand(String command) {
+        if (command.length() == 0) {    
+            return null;
+        }
+        else {
+            if (myPort != null) {
+                myPort.write(command + "\n");
+                return "Sent: " + command;
+            }
+            else {
+                return "Not Connected: " + command;
+            } 
+        }
+    }
+
     public void listPorts() {
         //  initialize your serial port and set the baud rate to 9600
 

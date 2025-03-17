@@ -213,7 +213,7 @@
                     .setRange(min, max)
                     .setColorBackground(buttonUpColor)
                     .setColorActive(buttonHoverColor)
-                    .setColorForeground(buttonHoverColor)
+                    .setColorForeground(buttonHoverColor1)
                     .setColorCaptionLabel(buttonTextColor)
                     .setColorValue(buttonTextColor)
                     .setScrollSensitivity(1)

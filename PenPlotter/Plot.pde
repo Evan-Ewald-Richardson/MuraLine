@@ -407,35 +407,6 @@ class Plot {
                     float lastY = currentY;
                     float targetX = currentCommand.x;
                     float targetY = currentCommand.y;
-                    
-                    // If this is a G0 move, draw it as a curve
-                    if (currentCommand.command.startsWith("G0") && !currentCommand.isPenUp) {
-                        // Calculate control points similar to queueCurvedG0Move
-                        float dx = targetX - lastX;
-                        float dy = targetY - lastY;
-                        float dist = sqrt(dx*dx + dy*dy);
-                        
-                        if (dist > 0.01) {
-                            float mpx = (lastX + targetX) / 2;
-                            float mpy = (lastY + targetY) / 2;
-                            
-                            // Calculate perpendicular vector
-                            float perpX = -dy / dist;
-                            float perpY = dx / dist;
-                            
-                            // Control points
-                            float cp1x = lastX + dx/3 + perpX * dist * CURVE_HEIGHT_FACTOR;
-                            float cp1y = lastY + dy/3 + perpY * dist * CURVE_HEIGHT_FACTOR;
-                            float cp2x = lastX + dx*2/3 + perpX * dist * CURVE_HEIGHT_FACTOR;
-                            float cp2y = lastY + dy*2/3 + perpY * dist * CURVE_HEIGHT_FACTOR;
-                            
-                            drawBezierCurve(lastX, lastY, cp1x, cp1y, cp2x, cp2y, targetX, targetY);
-                        } else {
-                            sline(lastX, lastY, targetX, targetY);
-                        }
-                    } else {
-                        sline(lastX, lastY, targetX, targetY);
-                    }
                 }
             }
         }
@@ -466,6 +437,6 @@ class Plot {
         // Update position without affecting plot state
         public void updatePos(float x, float y) {
             currentX = x;
-            currentY = y;
+            currentY = -y;
         }
     }
