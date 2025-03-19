@@ -1,4 +1,4 @@
- class GcodePlot extends Plot {
+class GcodePlot extends Plot {
 
 
         float lastX = 0;
@@ -86,7 +86,6 @@
 
             String[] tokens = gcodeData.get(i).split(" ");
             for (String token : tokens) {
-                // Log.d("cnc",token);
 
                 if (token.startsWith("G"))
                     cmd = token;
@@ -176,7 +175,6 @@
                 cx = (float) offsetX;
                 cy = (float) offsetY;
             }
-            //        Log.d("cnc","R = "+R+" sx = "+sx+" sy = "+sy+" cx = "+cx+" cy = "+cy+" ex = "+ex+" ey = "+ey);
             float[] center = new float[2];
             center[0] = cx;
             center[1] = cy;
@@ -222,7 +220,6 @@
             if (radius == 0) {
                 radius = Math.sqrt(Math.pow(sx - cx, 2.0f) + Math.pow(sy - cy, 2.0f));
             }
-            //        Log.d("cnc","R1 = "+R+" radius = "+radius+" cx = "+cx+" cy = "+cy);
             // Calculate angles from center.
             double startAngle = getAngle(cx, cy, sx, sy);
             double endAngle = getAngle(cx, cy, ex, ey);
@@ -357,30 +354,43 @@
             
         }
         
+        @Override
         public void draw() {
             float lastX = -offX / (userScale * flipX);
             float lastY = -offY / (userScale * flipY);
             RPoint cur;
+            
+            // Draw completed and remaining paths
             for (int i = 0; i < penPaths.size(); i++) {
-               Path p = penPaths.get(i);
+                Path p = penPaths.get(i);
                 for (int j = 0; j < p.size(); j++) {
-                    if (j == 0)
+                    if (j == 0) {
                         stroke(rapidColor);
-                    else
-                    {
-                      if(i< penIndex)
-                        stroke(penColor);
-                      else
-                        stroke(plotColor);
+                    } else {
+                        // Use pen color for completed paths and current path up to current command
+                        if (i < gcodeIndex || (i == gcodeIndex && currentCommand != null && j <= currentCommand.lineIndex)) {
+                            stroke(penColor);
+                        } else {
+                            stroke(plotColor);
+                        }
                     }
                     cur = p.getPoint(j);
-                    sline(lastX * userScale * flipX + offX + homeX, lastY * userScale * flipY + offY + homeY, cur.x * userScale * flipX + offX + homeX, cur.y * userScale * flipY + offY + homeY);
+                    sline(lastX * userScale * flipX + offX + homeX, 
+                          lastY * userScale * flipY + offY + homeY, 
+                          cur.x * userScale * flipX + offX + homeX, 
+                          cur.y * userScale * flipY + offY + homeY);
                     lastX = cur.x;
                     lastY = cur.y;
                 }
             }
+            
             stroke(rapidColor);
-            sline(lastX * userScale * flipX + offX + homeX, lastY * userScale * flipY + offY + homeY, homeX, homeY);
+            sline(lastX * userScale * flipX + offX + homeX, 
+                  lastY * userScale * flipY + offY + homeY, 
+                  homeX, homeY);
+            
+            // Draw current command movement
+            super.drawCurrentCommand();
         }
 
         String progress()
@@ -395,33 +405,32 @@
             super.plot();
         }
 
-        public void nextPlot(boolean preview) {
-
-            String cmd = "";
-            float x = lastX;
-            float y = lastY;
-            float z = lastZ;
-
-            float I = Float.NaN;
-            float J = Float.NaN;
-            float R = 0;
-            boolean sent = false;
-
-
-            while (!sent) {
-                if (gcodeIndex >= gcodeData.size()) {
-                    plottingStopped();
-                    return;
-                }
-                if (gcodeData.get(gcodeIndex).startsWith("(")) {
-                    gcodeIndex++;
-                    continue;
-                }
-
-
-                String[] tokens = gcodeData.get(gcodeIndex).split(" ");
+        @Override
+        protected void generatePaths() {
+            if (gcodeData == null) return;
+            
+            lastX = 0;
+            lastY = 0;
+            lastZ = 0;
+            int currentPathIndex = 0;
+            int currentLineIndex = 0;
+            
+            for (int i = 0; i < gcodeData.size(); i++) {
+                String line = gcodeData.get(i);
+                
+                // Skip comments
+                if (line.startsWith("(")) continue;
+                
+                String cmd = "";
+                float x = lastX;
+                float y = lastY;
+                float z = lastZ;
+                float I = Float.NaN;
+                float J = Float.NaN;
+                float R = 0;
+                
+                String[] tokens = line.split(" ");
                 for (String token : tokens) {
-                    // Log.d("cnc",token);
                     if (token.startsWith("G"))
                         cmd = token;
                     if ("G20".equals(cmd)) conversion = toInch;
@@ -439,54 +448,44 @@
                     else if (token.startsWith("R"))
                         R = Float.parseFloat(token.substring(1)) * conversion * userScale;
                 }
-
-                if (cmd.equals("")) {
-                    gcodeIndex++;
-                    continue;
-                }
-
-
+                
+                if (cmd.equals("")) continue;
+                
                 if (x != lastX || y != lastY) {
-
                     if (cmd.equals("G0")) {
-                        penIndex++;
-                        com.sendPenUp();
-                        com.sendMoveG0((x + offX + homeX), (y + offY + homeY));
-                        com.sendPenDown();
-                        sent = true;
-                    } else if (cmd.equals("G1")) {
-                        com.sendMoveG1((x + offX + homeX), (y + offY + homeY));
-                        sent = true;
-                    } else if (cmd.equals("G2")) {
-                        if (!Float.isNaN(I) && !Float.isNaN(J)) {
-                            com.sendG2((x + offX + homeX), (y + offY + homeY), I, J);
-                            sent = true;
-                        }
-                        else
-                        {
-                            com.sendG2((x + offX + homeX), (y + offY + homeY), R);
-                            sent = true;
-                        }
-                    } else if (cmd.equals("G3")) {
-                        if (!Float.isNaN(I) && !Float.isNaN(J)) {
-                            com.sendG3((x + offX + homeX), (y + offY + homeY), I, J);
-                            sent = true;
-                        }
-                        else
-                        {
-                            com.sendG3((x + offX + homeX), (y + offY + homeY), R);
-                            sent = true;
+                        currentPathIndex++; // New rapid move means new path
+                        currentLineIndex = 0; // Reset line index for new path
+                        queueGcode("G0 Z5\n", currentPathIndex, currentLineIndex); // Pen up
+                        queueGcode("G0 X" + (x + offX + homeX) + " Y" + (y + offY + homeY) + "\n", currentPathIndex, currentLineIndex);
+                        queueGcode("G0 Z0\n", currentPathIndex, currentLineIndex); // Pen down
+                    } else {
+                        currentLineIndex++; // Increment line index for continuous moves
+                        if (cmd.equals("G1")) {
+                            queueGcode("G1 X" + (x + offX + homeX) + " Y" + (y + offY + homeY) + "\n", currentPathIndex, currentLineIndex);
+                        } else if (cmd.equals("G2")) {
+                            if (!Float.isNaN(I) && !Float.isNaN(J)) {
+                                queueGcode("G2 X" + (x + offX + homeX) + " Y" + (y + offY + homeY) + " I" + I + " J" + J + "\n", currentPathIndex, currentLineIndex);
+                            } else {
+                                queueGcode("G2 X" + (x + offX + homeX) + " Y" + (y + offY + homeY) + " R" + R + "\n", currentPathIndex, currentLineIndex);
+                            }
+                        } else if (cmd.equals("G3")) {
+                            if (!Float.isNaN(I) && !Float.isNaN(J)) {
+                                queueGcode("G3 X" + (x + offX + homeX) + " Y" + (y + offY + homeY) + " I" + I + " J" + J + "\n", currentPathIndex, currentLineIndex);
+                            } else {
+                                queueGcode("G3 X" + (x + offX + homeX) + " Y" + (y + offY + homeY) + " R" + R + "\n", currentPathIndex, currentLineIndex);
+                            }
                         }
                     }
-
-
+                    
                     lastX = x;
                     lastY = y;
                     lastZ = z;
                 }
-               // if(preview)
-               //   drawPreview();
-                gcodeIndex++;
             }
+        }
+
+        @Override
+        protected void updateIndices(int pathIdx, int lineIdx) {
+            gcodeIndex = pathIdx;
         }
     }

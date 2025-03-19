@@ -1,18 +1,30 @@
- class Com {
+class Com {
     processing.serial.Serial myPort;  //the Serial port object
     String val;
     String lastCmd;
     ArrayList<String> buf = new ArrayList<String>();
 
     ArrayList<String> comPorts = new ArrayList<String>();
-    long baudRate = 115200;
-    int lastPort;
+    long baudRate = 250000;
     int okCount = 0;
     boolean initSent;
 
-    // inQueue variables for buffering on MCU
-    int inQueue = 0;
-    final int MAX_IN_QUEUE = 8;
+
+    public String sendTerminalCommand(String command) {
+        if (command.length() == 0) {    
+            return null;
+        }
+        else {
+            if (myPort != null) {
+                myPort.write(command + "\n");
+                okCount++;
+                return "Sent: " + command;
+            }
+            else {
+                return "Not Connected: " + command;
+            } 
+        }
+    }
 
     public void listPorts() {
         //  initialize your serial port and set the baud rate to 9600
@@ -45,7 +57,6 @@
         clearQueue();
         try {
             myPort = new processing.serial.Serial(applet, processing.serial.Serial.list()[port], (int) baudRate);
-            lastPort = port;
             println("connected");
             myPort.write("\n");
         } catch (Exception exp) {
@@ -75,45 +86,37 @@
     }
 
     public void moveDeltaY(float y) {
-        send("G0 Y" + y + "\n");
+        send("G0 Y" + (-y) + "\n");
         updatePos(currentX, currentY + y);
     }
 
-    public void moveDeltaA(float a) {
-        send("G350" + " P1" + "S" + a + "\n");
-    }
-
-    public void moveDeltaB(float b) {
-        send("G350" + " P2" + "S" + b + "\n");
-    }
-
     public void sendMoveG0(float x, float y) {
-        send("G0 X" + x + " Y" + y + "\n");
+        send("G0 X" + x + " Y" + (-y) + "\n");
         updatePos(x, y);
     }
 
     public void sendMoveG1(float x, float y) {
-        send("G1 X" + x + " Y" + y + "\n");
+        send("G1 X" + x + " Y" + (-y) + "\n");
         updatePos(x, y);
     }
 
     public void sendG2(float x, float y, float i, float j) {
-        send("G2 X" + x + " Y" + y + " I" + i + " J" + j + "\n");
+        send("G2 X" + x + " Y" + (-y) + " I" + i + " J" + j + "\n");
         updatePos(x, y);
     }
     
     public void sendG2(float x, float y, float r) {
-        send("G2 X" + x + " Y" + y + " R" + r+"\n");
+        send("G2 X" + x + " Y" + (-y) + " R" + r+"\n");
         updatePos(x, y);
     }
 
     public void sendG3(float x, float y, float i, float j) {
-        send("G3 X" + x + " Y" + y + " I" + i + " J" + j + "\n");
+        send("G3 X" + x + " Y" + (-y) + " I" + i + " J" + j + "\n");
         updatePos(x, y);
     }
     
     public void sendG3(float x, float y, float r) {
-        send("G3 X" + x + " Y" + y + " R" + r+"\n");
+        send("G3 X" + x + " Y" + (-y) + " R" + r+"\n");
         updatePos(x, y);
     }
 
@@ -122,7 +125,7 @@
     }
 
     public void sendHome() {
-        send("M1 Y" + homeY + "\n");
+        send("G92 X" + homeX + " Y" + (-homeY) + "\n");
         updatePos(homeX, homeY);
     }
 
@@ -130,47 +133,42 @@
         send("G0 F" + speedValue + "\n");
     }
 
-    public void sendPenWidth() {
-        send("M4 E" + penWidth + "\n");
-    }
+// M665: Set POLARGRAPH settings
+// Parameters:
+//    S[segments]  - Segments-per-second - NOT PARAMETERISED YET
+//    L[left]      - Work area minimum X
+//    R[right]     - Work area maximum X
+//    T[top]       - Work area maximum Y
+//    B[bottom]    - Work area minimum Y
+//    H[length]    - Maximum belt length
 
     public void sendSpecs() {
-        send("M4 X" + machineWidth + " E" + penWidth + " S" + stepsPerRev + " P" + mmPerRev + "\n");
+        // send(
+        //     "M665"
+        //     + " S" + "5"
+        //     + " L0" 
+        //     + " R" + machineWidth 
+        //     + " T0" 
+        //     + " B" + (-machineHeight)
+        //     + " H" + Math.sqrt((machineWidth * machineWidth) + (machineHeight * machineHeight)) 
+        //     + "\n"
+        // );
     }
     
     public void sendPenUp() {
-     if (useSolenoid == true) {
-       send("G4 P"+servoDwell+"\n");//pause
-       if (solenoidUP == 1) {
-          send("M107"+"\n");
-       } else {
-         send("M106"+"\n");
-       }
-       send("G4 P"+servoDwell+"\n");//pause
-     } else {
-      send("G4 P"+servoDwell+"\n");//pause
-      send("M340 P3 S"+servoUpValue+"\n");
-      send("G4 P"+servoDwell+"\n");
-     }
-     showPenDown();
+        send("G4 P"+servoDwell+"\n");//pause
+        send("M280 P0 S"+servoUpValue+"\n");
+        send("G4 P"+servoDwell+"\n");
+
+        showPenDown();
     }
     
 
     public void sendPenDown() {
-    if (useSolenoid == true) {
-         send("G4 P"+servoDwell+"\n");//pause
-         if (solenoidUP == 1) {
-            send("M106"+"\n");
-         } else {
-           send("M107"+"\n");
-         }
-         send("G4 P"+servoDwell+"\n");//pause
-       } else {
         send("G4 P"+servoDwell+"\n");
-        send("M340 P3 S"+servoDownValue+"\n");
+        send("M280 P0 S"+servoDownValue+"\n");
         send("G4 P"+servoDwell+"\n");
-      }
-      showPenUp();
+        showPenUp();
     }
 
     public void sendAbsolute() {
@@ -186,11 +184,6 @@
     {
       send("G21\n");
     }
-
-    public void sendPixel(float da, float db, int pixelSize, int shade, int pixelDir) {
-        send("M3 X" + da + " Y" + db + " P" + pixelSize + " S" + shade + " E" + pixelDir + "\n");
-    }
-
 
     public void initArduino() {
         initSent = true;
@@ -209,7 +202,6 @@
 
     public void queue(String msg) {
         if (myPort != null) {
-            // print("Q "+msg);
             buf.add(msg);
         }
     }
@@ -217,30 +209,20 @@
     public void nextMsg() {
         if (buf.size() > 0) {
             String msg = buf.get(0);
-           // print("sending "+msg);
             oksend(msg);
             buf.remove(0);
-        } else {
-
-            if (currentPlot.isPlotting())
-                currentPlot.nextPlot(true);
-
+        } else if (currentPlot.isPlotting()) {
+            currentPlot.nextPlot(true);
         }
     }
 
-    // public void send(String msg) {
-
-    //     if (okCount == 0)
-    //         oksend(msg);
-    //     else
-    //         queue(msg);
-    // }
-
-    // Updated send method to handle buffering on the MCU
     public void send(String msg) {
-        if (myPort == null) return; // not connected
-        buf.add(msg);
-        tryToSend();
+        if (myPort != null) {
+            if (okCount == 0)
+                oksend(msg);
+            else
+                queue(msg);
+        }
     }
 
     private void tryToSend() {
@@ -299,45 +281,31 @@
         if (myPort != null) {
             myPort.write(msg);
             lastCmd = msg;
+            okCount++;
             myTextarea.setText(" " + msg);
         }
     }
 
     public void serialEvent() {
         if (myPort == null || myPort.available() <= 0) return;
-        
+
         val = myPort.readStringUntil('\n');
-        if (val == null) return;
-        
-        val = trim(val);
-        println(val);
-        
-        if (val.contains("wait") || val.contains("echo")) {
-            // Reset queue count if firmware signals wait/echo
-            inQueue = 0;
-            if (!initSent)
-                initArduino();
-            else
-                tryToSend();
-        }
-        else if (val.contains("Resend") && lastCmd != null) {
-            // Resend last command and reset in-flight counter
-            inQueue = 0;
-            oksend(lastCmd);
-            inQueue++;
-        }
-        else if (val.contains("ok")) {
-            // A command was processed: decrement inQueue and try sending more
-            if (inQueue > 0) inQueue--;
-            tryToSend();
+        if (val != null) {
+            val = trim(val);
+            println("Received: " + val); // Better logging
             
-            // If all commands have been acknowledged and plotting is in progress, continue plotting
-            if (buf.isEmpty() && inQueue == 0 && currentPlot.isPlotting()) {
-                currentPlot.nextPlot(true);
-                tryToSend();
+            if (val.contains("wait") || val.contains("echo")) {
+            }          
+            else if(val.contains("Resend") && lastCmd != null) {
+                println("Resending command: " + lastCmd);
+                myPort.write(lastCmd);
+            }            
+            else if (val.contains("ok")) {
+                okCount--; // CHANGE: Decrement instead of setting to 0
+                println("Command acknowledged. Remaining commands: " + okCount);
+                nextMsg();
             }
         }
     }
-
-    public void export(File file){}
+    
 }

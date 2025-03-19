@@ -100,9 +100,9 @@ JFileChooser fc;
             }
             println("export "+ext);
             Com oldcom = com;
-            com = new Export(ext);
-            com.export(f);
-            com = oldcom;
+            // com = new Export(ext);
+            // com.export(f);
+            // com = oldcom;
 
         }
         super.approveSelection();   
@@ -135,7 +135,6 @@ JFileChooser fc;
                                            fc.setDialogTitle("Export file...");
                                            fc.setAcceptAllFileFilterUsed(false);
                                            fc.addChoosableFileFilter(new MyExtensionFileFilter("PEN Plotter gcode",".gcode"));
-                                           fc.addChoosableFileFilter(new MyExtensionFileFilter("CNC gcode",".cnc"));
                                            
                                            fc.showSaveDialog((java.awt.Component) surface.getNative());
 
@@ -154,8 +153,6 @@ JFileChooser fc;
             props.setProperty("machine.width",""+machineWidth);
             props.setProperty("machine.height",""+machineHeight);
             props.setProperty("machine.homepoint.y",""+homeY);
-            props.setProperty("machine.motors.mmPerRev",""+mmPerRev);
-            props.setProperty("machine.motors.stepsPerRev",""+stepsPerRev);
 
             props.setProperty("machine.penSize",""+penWidth );
             props.setProperty("svg.pixelsPerInch",""+svgDpi);
@@ -166,7 +163,6 @@ JFileChooser fc;
             props.setProperty("image.pixelSize",""+pixelSize);
 
             props.setProperty("com.baudrate",""+com.baudRate);
-            props.setProperty("com.serialPort",""+com.lastPort);
 
             props.setProperty("machine.offX",""+offX);
             props.setProperty("machine.offY",""+offY);
@@ -176,7 +172,6 @@ JFileChooser fc;
             props.setProperty("image.cropRight",""+cropRight);
             props.setProperty("image.cropTop",""+cropTop);
             props.setProperty("image.cropBottom",""+cropBottom);
-            props.setProperty("cnc.safeHeight",""+cncSafeHeight);
             props.setProperty("servo.dwell",""+servoDwell);
             props.setProperty("servo.upValue",""+servoUpValue);
             props.setProperty("servo.downValue",""+servoDownValue);
@@ -287,14 +282,7 @@ JFileChooser fc;
                                                }
                                                else if (imageFile(file.getPath()))
                                                {
-                                                   if(imageMode == HATCH)
-                                                       currentPlot = hatchPlot;
-                                                   else if(imageMode == DIAMOND)
-                                                       currentPlot = diamondPlot;
-                                                   else if(imageMode == SQUARE)
-                                                       currentPlot = squarePlot;
-                                                   else
-                                                       currentPlot = stipplePlot;
+                                                    currentPlot = stipplePlot;
                                                }
                                                currentPlot.load(file.getPath());
                                                currentPlot.showControls();
@@ -309,7 +297,6 @@ JFileChooser fc;
     public boolean gcodeFile(String filename)
     {
         return filename.endsWith(".gco") || filename.endsWith(".g") ||
-                filename.endsWith(".nc") || filename.endsWith(".cnc") ||
                 filename.endsWith(".gcode");
     }
 
