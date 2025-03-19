@@ -17,6 +17,7 @@ class Com {
         else {
             if (myPort != null) {
                 myPort.write(command + "\n");
+                okCount++;
                 return "Sent: " + command;
             }
             else {

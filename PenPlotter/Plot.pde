@@ -165,7 +165,7 @@ class Plot {
         }
         
         // Constants for bezier curve generation
-        protected static final int G0_CURVE_SEGMENTS = 10;  // Number of segments for G0 curves
+        protected static final int G0_CURVE_SEGMENTS = 100;  // Number of segments for G0 curves
         protected static final float CURVE_HEIGHT_FACTOR = 0.3f;  // How much the curve bulges (0.0-1.0)
         
         // Class-level additions to Plot class

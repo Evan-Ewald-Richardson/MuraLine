@@ -263,6 +263,9 @@ class SvgPlot extends Plot {
     public void load(String filename) {
         File file = new File(filename);
         if (file.exists()) {
+            // RG.setPolygonizer(RG.ADAPTATIVE);
+            RG.setPolygonizer(RG.UNIFORMLENGTH);
+            RG.setPolygonizerLength(0.01f);
             sh = RG.loadShape(filename);
 
             println("loaded " + filename);
