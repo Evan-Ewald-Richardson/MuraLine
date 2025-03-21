@@ -8,7 +8,9 @@ class Com {
     long baudRate = 250000;
     int okCount = 0;
     boolean initSent;
-
+  
+    int inQueue = 0;
+    int MAX_IN_QUEUE = 8;
 
     public String sendTerminalCommand(String command) {
         if (command.length() == 0) {    
