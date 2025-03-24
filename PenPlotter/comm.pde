@@ -234,49 +234,6 @@ class Com {
             inQueue++;
         }
     }
-
-    // public void oksend(String msg) {
-    //     print(msg);
-
-    //     if (myPort != null) {
-    //         myPort.write(msg);
-    //         lastCmd = msg;
-    //         okCount--;
-    //         myTextarea.setText(" " + msg);
-    //     }
-    // }
-
-    // public void serialEvent() {
-
-     
-    //     if (myPort == null || myPort.available() <= 0) return;
-
-
-    //     val = myPort.readStringUntil('\n');
-    //     if (val != null) {
-    //         val = trim(val);
-    //         if (!val.contains("wait"))
-    //             println(val);
-                
-    //         if (val.contains("wait") || val.contains("echo"))
-    //         {
-    //             okCount = 0;
-    //             if(!initSent)
-    //               initArduino();
-    //             else
-    //               nextMsg();
-    //         }          
-    //         else if(val.contains("Resend") && lastCmd != null)
-    //         {
-    //           okCount=0;
-    //           oksend(lastCmd);
-    //         }            
-    //         else if (val.contains("ok")) {
-    //             okCount=0;
-    //             nextMsg();
-    //         }
-    //     }
-    // }
     
     public void oksend(String msg) {
         print(msg);

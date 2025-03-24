@@ -68,9 +68,9 @@ int homeY;          // location of homeY good location is where gondola hangs wi
 float currentX = homeX;   // X location of gondola
 float currentY = homeY;   // X location of gondola
 
-int speedValue;     // speed of motors controlled with speed slider
+int speedValue = 30000;     // speed of motors controlled with speed slider
 
-float zoomScale = 0.75f;   // screen scale controlle with mouse wheel
+float zoomScale = 0.2f;   // screen scale controlle with mouse wheel
 float shortestSegment = 0;    // cull out svg segments shorter that is.
 
 int menuWidth = 110;
@@ -167,14 +167,16 @@ int imageMode = STIPPLE;
 long lastTime = millis();
 long freeMemory;
 long totalMemory;
-int servoDwell = 250;
-int servoUpValue = 2350;
-int servoDownValue = 1500;
+int servoDwell;
+int servoUpValue;
+int servoDownValue;
 int rate;
 int tick;
 
-float paperWidth = 8.5;
-float paperHeight = 11;
+float paperWidth;
+float paperHeight;
+float paperTop;
+
 public static Console console;
 Com com = new Com();
 
@@ -224,27 +226,12 @@ public void setup() {
 
     penWidth = Float.parseFloat(props.getProperty("machine.penSize"));
 
-    svgDpi = Float.parseFloat(props.getProperty("svg.pixelsPerInch"));
     svgScale = 25.4f/svgDpi;
 
     currentFileName = props.getProperty("svg.name");
 
 
     com.baudRate = Long.parseLong(props.getProperty("com.baudrate"));
-
-    offX = Integer.parseInt(props.getProperty("machine.offX"));
-    offY = Integer.parseInt(props.getProperty("machine.offY"));
-
-    zoomScale = Float.parseFloat(props.getProperty("machine.zoomScale"));
-
-    cropLeft = Integer.parseInt(props.getProperty("image.cropLeft"));
-    if(cropLeft < imageX) cropLeft = imageX;
-    cropRight = Integer.parseInt(props.getProperty("image.cropRight"));
-    if(cropRight > imageX+imageWidth) cropRight = imageX+imageWidth;
-    cropTop = Integer.parseInt(props.getProperty("image.cropTop"));
-    if(cropTop < imageY) cropTop = imageY;
-    cropBottom = Integer.parseInt(props.getProperty("image.cropBottom"));
-    if(cropBottom > imageY+imageHeight) cropBottom = imageY+imageHeight;
 
     shortestSegment = Float.parseFloat(props.getProperty("svg.shortestSegment"));
 
@@ -258,32 +245,26 @@ public void setup() {
     prevWidth = width;
     prevHeight = height;
 
-
-    speedValue = Integer.parseInt(props.getProperty("machine.motors.maxSpeed"));
     speedSlider.setValue(speedValue);
 
-    pixelSize = Integer.parseInt(props.getProperty("image.pixelSize"));
     pixelSizeSlider.setValue(pixelSize);
 
-    userScale = Float.parseFloat(props.getProperty("svg.UserScale"));
     scaleSlider.setValue(userScale);
     
     servoDwell = Integer.parseInt(props.getProperty("servo.dwell"));
     servoUpValue = Integer.parseInt(props.getProperty("servo.upValue"));
     servoDownValue = Integer.parseInt(props.getProperty("servo.downValue"));
     
-    paperWidth = Float.parseFloat(props.getProperty("paper.width.inches"));
-    paperHeight = Float.parseFloat(props.getProperty("paper.height.inches"));
+    paperWidth = Float.parseFloat(props.getProperty("paper.width"));
+    paperHeight = Float.parseFloat(props.getProperty("paper.height"));
+    paperTop = Float.parseFloat(props.getProperty("paper.top"));
     
     updateScale();
 
-    handles = new Handle[6];
-    handles[0] = new Handle("homeY", 0, homeY, 0, 10, handles, false, true, 128);
-    handles[1] = new Handle("mWidth", machineWidth, machineHeight/2, 0, 10, handles, true, false, 64);
-    handles[2] = new Handle("mHeight", homeX, machineHeight, 0, 10, handles, false, true, 64);
-    handles[3] = new Handle("gondola", (int)currentX, (int)currentY, 0, 10, handles, true, true, 2);
-    handles[4] = new Handle("pWidth", Math.round(homeX+(paperWidth/2)*25.4), Math.round(homeY+(paperHeight/2)*25.4f), 0, 10, handles, true, false, 64);
-    handles[5] = new Handle("pHeight", homeX, Math.round(homeY+(paperHeight)*25.4), 0, 10, handles, false, true, 64);
+    handles = new Handle[3];
+    handles[0] = new Handle("gondola", (int)currentX, (int)currentY, 0, 10, handles, true, true, 2);
+    handles[1] = new Handle("pWidth", Math.round(homeX+(paperWidth/2)), Math.round(paperTop+(paperHeight/2)), 0, 10, handles, true, false, 64);
+    handles[2] = new Handle("pHeight", homeX, Math.round(paperTop+(paperHeight)), 0, 10, handles, false, true, 64);
 }
 
 public void mousePressed()
@@ -420,11 +401,11 @@ public void handleMoved(String id, int x, int y)
     }
     else if(id.equals("pWidth"))
     {
-        paperWidth = (x-homeX)*2/25.4;
+        paperWidth = (x-homeX)*2;
     }
     else if(id.equals("pHeight"))
     {
-        paperHeight = (y-homeY)/25.4;
+        paperHeight = (y-paperTop);
     }
 }
 
@@ -694,15 +675,9 @@ public void drawPaper()
     fill(pageColor);
     stroke(gridColor);
     strokeWeight(0.4f);
-    float pWidth = paperWidth*25.4f;
-    float pHeight = paperHeight*25.4f;
-    rect(scaleX(homeX - pHeight / 2), scaleY(homeY), pHeight * zoomScale, pWidth * zoomScale);
-    rect(scaleX(homeX - pWidth / 2), scaleY(homeY), pWidth * zoomScale, pHeight * zoomScale);
-    //   noFill();
-    //   rect(scaleX(homeX - pWidth / 2), scaleY(homeY), pWidth * zoomScale, pHeight * zoomScale);
-    //   rect(scaleX(homeX - pHeight / 2), scaleY(homeY), pHeight * zoomScale, pWidth * zoomScale);
-    
-
+    float pWidth = paperWidth;
+    float pHeight = paperHeight;
+    rect(scaleX(homeX - pWidth / 2), scaleY(paperTop), pWidth * zoomScale, pHeight * zoomScale);
 }
 
 public void drawImageFrame()

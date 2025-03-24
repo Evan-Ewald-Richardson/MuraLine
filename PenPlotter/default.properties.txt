@@ -1,27 +1,21 @@
 #Polar Properties
-#Thu Mar 13 15:02:55 PDT 2025
+#Mon Mar 24 14:22:30 PDT 2025
+
 com.baudrate=250000
 com.serialPort=1
-image.cropRight=330
-servo.upValue=2350
-image.scale=1.0
-image.cropLeft=130
-machine.height=1870
-machine.offY=-365
-machine.offX=-495
-machine.zoomScale=0.09999999
-image.cropBottom=210
-svg.name=C\:\\Users\\evanr\\OneDrive\\Desktop\\rect.svg
-svg.pixelsPerInch=7.2
-svg.shortestSegment=0.0
+
+servo.downValue=145
+servo.upValue=100
 servo.dwell=250
+
 machine.width=2530
-svg.UserScale=1.0
-machine.motors.maxSpeed=1010
-servo.downValue=1500
+machine.height=1870
 machine.homepoint.y=870
 machine.penSize=30.0
-paper.width.inches=8.5
-image.pixelSize=6
-paper.height.inches=11.0
-image.cropTop=10
+
+svg.name=C\:\\Users\\evanr\\OneDrive\\Desktop\\Modular_wall.png
+svg.shortestSegment=0.0
+
+paper.width=200
+paper.height=200
+paper.top=100

@@ -143,55 +143,6 @@ JFileChooser fc;
         );
     }
 
-    public void saveProperties() {
-
-        if(props == null)
-            props = new SortedProperties();
-
-        try {
-            props.setProperty("machine.motors.maxSpeed",""+speedValue);
-            props.setProperty("machine.width",""+machineWidth);
-            props.setProperty("machine.height",""+machineHeight);
-            props.setProperty("machine.homepoint.y",""+homeY);
-
-            props.setProperty("machine.penSize",""+penWidth );
-            props.setProperty("svg.pixelsPerInch",""+svgDpi);
-            props.setProperty("svg.name",currentFileName);
-            props.setProperty("svg.UserScale",""+userScale);
-            props.setProperty("svg.shortestSegment",""+shortestSegment);
-
-            props.setProperty("image.pixelSize",""+pixelSize);
-
-            props.setProperty("com.baudrate",""+com.baudRate);
-
-            props.setProperty("machine.offX",""+offX);
-            props.setProperty("machine.offY",""+offY);
-            props.setProperty("machine.zoomScale",""+zoomScale);
-
-            props.setProperty("image.cropLeft",""+cropLeft);
-            props.setProperty("image.cropRight",""+cropRight);
-            props.setProperty("image.cropTop",""+cropTop);
-            props.setProperty("image.cropBottom",""+cropBottom);
-            props.setProperty("servo.dwell",""+servoDwell);
-            props.setProperty("servo.upValue",""+servoUpValue);
-            props.setProperty("servo.downValue",""+servoDownValue);
-            props.setProperty("paper.width.inches",""+nf(paperWidth,0,1));
-            props.setProperty("paper.height.inches",""+nf(paperHeight,0,1));
-            
-
-            String fileToSave = sketchPath(propertiesFilename);
-            File f = new File(fileToSave);
-            OutputStream out = new FileOutputStream( f );
-            props.store(out, "Polar Properties");
-            out.close();
-            println("Saved Properties "+propertiesFilename);
-        }
-        catch (Exception e ) {
-            e.printStackTrace();
-            println(e);
-        }
-    }
-
 
     public Properties getProperties()
     {
@@ -207,8 +158,6 @@ JFileChooser fc;
                 if (!propertiesFile.exists())
                 {
                     println("saving.");
-                    saveProperties();
-                    println("saved.");
                 }
                 else
                 {

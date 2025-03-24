@@ -107,7 +107,7 @@ class SvgPlot extends Plot {
             PathVector entryVec = new PathVector(startX, startY, pathDirX, pathDirY);
             
             // Pen up before curved move
-            queueGcode("M280 P0 S100\n");
+            queueGcode("M280 P0 S"+servoUpValue+"\n");
             
             // Generate curved move using approach vector, entry vector, and previous path vectors
             queueCurvedG0Move(approachVec, entryVec, i, 0, previousPathVectors);
@@ -117,7 +117,7 @@ class SvgPlot extends Plot {
             addPreviousPathVector(entryVec);
             
             // Pen down for drawing
-            queueGcode("M280 P0 S145\n");
+            queueGcode("M280 P0 S"+servoDownValue+"\n");
             
             // Draw the path and track vector points
             for (int j = 1; j < path.size(); j++) {

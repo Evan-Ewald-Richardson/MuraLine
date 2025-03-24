@@ -359,8 +359,6 @@ public void createcp5GUI()
 
     addButton("goHome", "Go Home", leftMargin, posY+=ySpace, 4);
     addButton("off", "Motors Off", leftMargin, posY+=ySpace, 4);
-    addButton("save", "Save", leftMargin, posY+=ySpace, 4);
-    noDrawButton = addButton("nodraw", "No Draw",leftMargin, posY+=ySpace, 4);
 
     stipplePlot.init();
 
@@ -598,11 +596,11 @@ public void penUp(ControlEvent theEvent)
 
     if (b.getCaptionLabel().getText().indexOf("Up") > 0)
     {
-        currentPlot.sendImmediateCommand("M280 P0 S100\n");
+        com.sendPenUp();
         showPenDown();
     } else
     {
-        currentPlot.sendImmediateCommand("M280 P0 S145\n");
+        com.sendPenDown();
         showPenUp();
     }
 }
@@ -626,21 +624,16 @@ public void nodraw(ControlEvent theEvent)
 
 public void goHome()
 {
-    String cmd = "G90\n";  // Absolute positioning
-    currentPlot.sendImmediateCommand(cmd);
-    currentPlot.sendImmediateCommand("M280 P0 S100\n");
-    cmd = "G0 X" + homeX + " Y" + (-homeY) + "\n";
-    currentPlot.sendImmediateCommand(cmd);
+    currentPlot.sendImmediateCommand("G90\n");
+    com.sendPenUp();
+    showPenDown();
+    currentPlot.sendImmediateCommand("G0 X" + homeX + " Y" + (-homeY) + "\n");
+    setHome();
 }
 
 public void off()
 {
     currentPlot.sendImmediateCommand("M18\n"); // Motors off
-}
-
-public void save()
-{
-    saveProperties();
 }
 
 
