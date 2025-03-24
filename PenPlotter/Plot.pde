@@ -9,15 +9,6 @@ class Plot {
         int disconnectedDelay = 10;  // Delay between commands when disconnected (milliseconds)
         ArrayList<Path> penPaths = new ArrayList<Path>();
         PGraphics preview = null;
-
-        protected static final float MIN_CURVE_RADIUS = 100.0f;  // Minimum radius for curves
-        protected static final int MAX_CURVE_SEGMENTS = 2000;    // Maximum number of segments
-        protected static final int MIN_CURVE_SEGMENTS = 200;     // Minimum number of segments
-
-        private static final int workAreaMinX = 500;
-        private static final int workAreaMaxX = 2030;
-        private static final int workAreaMinY = 400;
-        private static final int workAreaMaxY = 1670;
         
         // Command with metadata for UI updates
         protected class GCodeCommand {
@@ -172,10 +163,6 @@ class Plot {
             // Generate all path GCODE commands
             generatePathGcode();
         }
-        
-        // Constants for bezier curve generation
-        protected static final int G0_CURVE_SEGMENTS = 100;  // Number of segments for G0 curves
-        protected static final float CURVE_HEIGHT_FACTOR = 0.3f;  // How much the curve bulges (0.0-1.0)
         
         // Class-level additions to Plot class
         protected class PathVector {
@@ -471,14 +458,11 @@ class Plot {
         void load(String fileName) {}
 
         // Helper method to draw a cubic bezier curve in the UI
-        protected void drawBezierCurve(float x1, float y1, float cp1x, float cp1y, 
-                                      float cp2x, float cp2y, float x2, float y2) {
+        protected void drawBezierCurve(float x1, float y1, float cp1x, float cp1y, float cp2x, float cp2y, float x2, float y2) {
             noFill();
             beginShape();
             vertex(scaleX(x1), scaleY(y1));
-            bezierVertex(scaleX(cp1x), scaleY(cp1y), 
-                        scaleX(cp2x), scaleY(cp2y), 
-                        scaleX(x2), scaleY(y2));
+            bezierVertex(scaleX(cp1x), scaleY(cp1y), scaleX(cp2x), scaleY(cp2y), scaleX(x2), scaleY(y2));
             endShape();
         }
 

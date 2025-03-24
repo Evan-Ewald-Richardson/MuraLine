@@ -65,6 +65,11 @@ int homeX;          //X Home position
 int machineHeight;  //machine Height only used to draw page height
 int homeY;          // location of homeY good location is where gondola hangs with motor power off
 
+float workAreaMinX;
+float workAreaMaxX;
+float workAreaMinY;
+float workAreaMaxY;
+
 float currentX = homeX;   // X location of gondola
 float currentY = homeY;   // X location of gondola
 
@@ -72,6 +77,14 @@ int speedValue = 30000;     // speed of motors controlled with speed slider
 
 float zoomScale = 0.2f;   // screen scale controlle with mouse wheel
 float shortestSegment = 0;    // cull out svg segments shorter that is.
+
+float MIN_CURVE_RADIUS;  // Minimum radius for curves
+int MAX_CURVE_SEGMENTS;    // Maximum number of segments
+int MIN_CURVE_SEGMENTS;     // Minimum number of segments
+float CURVE_HEIGHT_FACTOR;
+
+float angleThreshold;
+float polygonizerLength;
 
 int menuWidth = 110;
 int originX = 475; // screen X offset of page will change if page dragged
@@ -258,7 +271,20 @@ public void setup() {
     paperWidth = Float.parseFloat(props.getProperty("paper.width"));
     paperHeight = Float.parseFloat(props.getProperty("paper.height"));
     paperTop = Float.parseFloat(props.getProperty("paper.top"));
-    
+
+    workAreaMinX = (machineWidth-paperWidth)/2;
+    workAreaMaxX = machineWidth - workAreaMinX;
+    workAreaMinY = paperTop;
+    workAreaMaxY = paperTop + paperHeight;
+
+    MIN_CURVE_RADIUS = Float.parseFloat(props.getProperty("travel_curve.MIN_CURVE_RADIUS"));
+    MAX_CURVE_SEGMENTS = Integer.parseInt(props.getProperty("travel_curve.MAX_CURVE_SEGMENTS"));
+    MIN_CURVE_SEGMENTS = Integer.parseInt(props.getProperty("travel_curve.MIN_CURVE_SEGMENTS"));
+    CURVE_HEIGHT_FACTOR = Float.parseFloat(props.getProperty("travel_curve.CURVE_HEIGHT_FACTOR"));
+
+    angleThreshold = radians(Float.parseFloat(props.getProperty("svg_parse.angleThreshold.degrees")));
+    polygonizerLength = Float.parseFloat(props.getProperty("svg_parse.polygonizerLength"));
+
     updateScale();
 
     handles = new Handle[3];
@@ -388,16 +414,6 @@ public void handleMoved(String id, int x, int y)
 
         currentX = x;
         currentY = y;
-    }
-    else if(id.equals("mWidth")) {
-        machineWidth = x;
-        homeX = machineWidth / 2;
-        handles[2].x = homeX;
-
-    }
-    else if(id.equals("mHeight")) {
-        machineHeight = y;
-        handles[1].y = y / 2;
     }
     else if(id.equals("pWidth"))
     {
@@ -560,8 +576,8 @@ public void updatePos(float x, float y)
 {
     currentX = x;
     currentY = y;
-    handles[3].x = x;
-    handles[3].y = y;
+    handles[0].x = x;
+    handles[0].y = y;
     motorsOn = true;
 }
 

@@ -292,7 +292,7 @@ class SvgPlot extends Plot {
         if (file.exists()) {
             // RG.setPolygonizer(RG.ADAPTATIVE);
             RG.setPolygonizer(RG.UNIFORMLENGTH);
-            RG.setPolygonizerLength(0.001f);
+            RG.setPolygonizerLength(polygonizerLength);
             sh = RG.loadShape(filename);
 
             println("loaded " + filename);
@@ -369,8 +369,6 @@ class SvgPlot extends Plot {
             segments.add(path);
             return segments;
         }
-
-        float angleThreshold = radians(30);
 
         Path currentSegment = new Path();
         currentSegment.addPoint(pointPath[0].x, pointPath[0].y);

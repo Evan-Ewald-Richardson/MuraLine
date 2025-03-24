@@ -16,6 +16,14 @@ machine.penSize=30.0
 svg.name=C\:\\Users\\evanr\\OneDrive\\Desktop\\Modular_wall.png
 svg.shortestSegment=0.0
 
-paper.width=200
-paper.height=200
-paper.top=100
+paper.width=2030
+paper.height=1400
+paper.top=400
+
+travel_curve.MIN_CURVE_RADIUS=100.0
+travel_curve.MAX_CURVE_SEGMENTS=2000
+travel_curve.MIN_CURVE_SEGMENTS=200
+travel_curve.CURVE_HEIGHT_FACTOR=0.3
+
+svg_parse.angleThreshold.degrees=30
+svg_parse.polygonizerLength=0.001
