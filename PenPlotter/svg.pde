@@ -61,12 +61,17 @@ class SvgPlot extends Plot {
             return "0/"+penPaths.size();
     }
 
-    @Override
     protected void generatePaths() {
         if (penPaths == null || penPaths.isEmpty()) return;
         
+        // Clear previous path vectors at the start of path generation
+        previousPathVectors.clear();
+        
         // Track the last position and vector between paths
         PathVector lastPos = new PathVector(homeX, homeY, 0, -1); // Default upward vector at home
+        
+        // Add initial home position to previous vectors
+        addPreviousPathVector(lastPos);
         
         // Process each SVG path
         for (int i = 0; i < penPaths.size(); i++) {
@@ -104,18 +109,37 @@ class SvgPlot extends Plot {
             // Pen up before curved move
             queueGcode("M280 P0 S100\n");
             
-            // Generate curved move using approach vector and entry vector
-            queueCurvedG0Move(approachVec, entryVec, i, 0);
+            // Generate curved move using approach vector, entry vector, and previous path vectors
+            queueCurvedG0Move(approachVec, entryVec, i, 0, previousPathVectors);
+            
+            // Add approach and entry vectors to previous path vectors
+            addPreviousPathVector(approachVec);
+            addPreviousPathVector(entryVec);
             
             // Pen down for drawing
             queueGcode("M280 P0 S145\n");
             
-            // Draw the path
+            // Draw the path and track vector points
             for (int j = 1; j < path.size(); j++) {
                 float x = path.getPoint(j).x * scaleX + machineWidth / 2 + offX;
                 float y = path.getPoint(j).y * scaleY + homeY + offY;
                 
                 if (!Float.isNaN(x) && !Float.isNaN(y)) {
+                    // Create a vector for each point in the path
+                    if (j > 1) {
+                        float prevX = path.getPoint(j-1).x * scaleX + machineWidth / 2 + offX;
+                        float prevY = path.getPoint(j-1).y * scaleY + homeY + offY;
+                        
+                        PathVector pointVector = new PathVector(
+                            x, y, 
+                            x - prevX, 
+                            y - prevY
+                        );
+                        
+                        // Add to previous path vectors
+                        addPreviousPathVector(pointVector);
+                    }
+                    
                     queueGcode("G1 X" + x + " Y" + (-y) + "\n", i, j);
                 }
             }
@@ -137,6 +161,9 @@ class SvgPlot extends Plot {
                     exitX - beforeX,
                     exitY - beforeY
                 );
+                
+                // Add exit vector to previous path vectors
+                addPreviousPathVector(lastPos);
             }
         }
     }
@@ -299,10 +326,8 @@ class SvgPlot extends Plot {
             if (pointPath != null) {
                 Path path = new Path();
 
-                for (int j = 0; j < pointPath.length; j++) {
-                    path.addPoint(pointPath[j].x, pointPath[j].y);
-                }
-                remainingPaths.add(path);
+                ArrayList<Path> segments = segmentPathAtAngles(pointPath);
+                remainingPaths.addAll(segments);
             }
         }
 
@@ -354,7 +379,7 @@ class SvgPlot extends Plot {
         float prevDirX = pointPath[1].x - pointPath[0].x;
         float prevDirY = pointPath[1].y - pointPath[0].y;
         float prevLength = sqrt(prevDirX * prevDirX + prevDirY * prevDirY);
-        
+
         if (prevLength > 0) {
             prevDirX /= prevLength;
             prevDirY /= prevLength;

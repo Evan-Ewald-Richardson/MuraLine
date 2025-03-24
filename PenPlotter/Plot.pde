@@ -6,9 +6,18 @@ class Plot {
         int plotColor = previewColor;
         int penIndex;
         long lastCommandTime = 0;  // Track when last command was processed
-        int disconnectedDelay = 100;  // Delay between commands when disconnected (milliseconds)
+        int disconnectedDelay = 10;  // Delay between commands when disconnected (milliseconds)
         ArrayList<Path> penPaths = new ArrayList<Path>();
         PGraphics preview = null;
+
+        protected static final float MIN_CURVE_RADIUS = 100.0f;  // Minimum radius for curves
+        protected static final int MAX_CURVE_SEGMENTS = 2000;    // Maximum number of segments
+        protected static final int MIN_CURVE_SEGMENTS = 200;     // Minimum number of segments
+
+        private static final int workAreaMinX = 500;
+        private static final int workAreaMaxX = 2030;
+        private static final int workAreaMinY = 400;
+        private static final int workAreaMaxY = 1670;
         
         // Command with metadata for UI updates
         protected class GCodeCommand {
@@ -188,10 +197,44 @@ class Plot {
                     dy /= len;
                 }
             }
+
+            PathVector averageDirection(PathVector other, int weight) {
+                float avgDx = (this.dx + other.dx * weight) / (1 + weight);
+                float avgDy = (this.dy + other.dy * weight) / (1 + weight);
+                return new PathVector(this.x, this.y, avgDx, avgDy);
+            }
+        }
+
+        protected int calculateCurveSegments(float distance) {
+            // Logarithmic scaling of segments based on distance
+            int segments = (int)(Math.log1p(distance) * 30);
+            
+            // Clamp segments between MIN and MAX
+            return Math.max(MIN_CURVE_SEGMENTS, 
+                Math.min(MAX_CURVE_SEGMENTS, segments));
+        }
+
+        protected PathVector adjustVectorToWorkArea(PathVector vector, float workAreaMinX, float workAreaMaxX, float workAreaMinY, float workAreaMaxY) {
+            // Check if the current vector points outside the work area
+            float projectedX = vector.x + vector.dx * MIN_CURVE_RADIUS;
+            float projectedY = vector.y + vector.dy * MIN_CURVE_RADIUS;
+            
+            // Adjust direction if projection goes outside work area
+            if (projectedX < workAreaMinX || projectedX > workAreaMaxX ||
+                projectedY < workAreaMinY || projectedY > workAreaMaxY) {
+                // Rotate vector slightly inwards
+                float inwardRotation = PI / 6;  // 30-degree rotation
+                float newDx = vector.dx * cos(inwardRotation) - vector.dy * sin(inwardRotation);
+                float newDy = vector.dx * sin(inwardRotation) + vector.dy * cos(inwardRotation);
+                
+                return new PathVector(vector.x, vector.y, newDx, newDy);
+            }
+            
+            return vector;
         }
         
         // Generate a curved G0 move that aligns with entry/exit vectors
-        protected void queueCurvedG0Move(PathVector start, PathVector end, int pathIndex, int lineIndex) {
+        protected void queueCurvedG0Move(PathVector start, PathVector end, int pathIndex, int lineIndex, List<PathVector> previousPoints) {
             // Validate input coordinates
             if (Float.isNaN(start.x) || Float.isNaN(start.y) || 
                 Float.isNaN(end.x) || Float.isNaN(end.y)) {
@@ -205,24 +248,57 @@ class Plot {
             // Calculate distance for scaling
             float dx = end.x - start.x;
             float dy = end.y - start.y;
-            float dist = sqrt(dx*dx + dy*dy);
+            float dist = max(sqrt(dx*dx + dy*dy), MIN_CURVE_RADIUS);
             
-            // Skip if distance is too small
-            if (dist < 0.01) {
-                queueGcode("G0 X" + end.x + " Y" + (-end.y) + "\n", pathIndex, lineIndex);
-                return;
+            // Adjust start and end vectors using previous points
+            PathVector adjustedStart = start;
+            PathVector adjustedEnd = end;
+            
+            if (previousPoints != null && !previousPoints.isEmpty()) {
+                // Use average of last few points to stabilize direction vector
+                int weight = Math.min(3, previousPoints.size());
+                adjustedStart = start;
+                for (int i = 0; i < weight; i++) {
+                    adjustedStart = adjustedStart.averageDirection(previousPoints.get(previousPoints.size() - 1 - i), weight);
+                }
+                
+                // Similar adjustment for end vector (using future/next points if available)
+                adjustedEnd = end;
             }
             
-            // Calculate control points using entry/exit vectors
-            float cp1x = start.x + start.dx * dist * CURVE_HEIGHT_FACTOR;
-            float cp1y = start.y + start.dy * dist * CURVE_HEIGHT_FACTOR;
+            // Adjust vectors to stay within work area
+            adjustedStart = adjustVectorToWorkArea(adjustedStart, workAreaMinX, workAreaMaxX, workAreaMinY, workAreaMaxY);
+            adjustedEnd = adjustVectorToWorkArea(adjustedEnd, workAreaMinX, workAreaMaxX, workAreaMinY, workAreaMaxY);
             
-            float cp2x = end.x - end.dx * dist * CURVE_HEIGHT_FACTOR;
-            float cp2y = end.y - end.dy * dist * CURVE_HEIGHT_FACTOR;
+            // Calculate number of segments based on distance
+            int segments = calculateCurveSegments(dist);
+            
+            // Calculate control points with increased curve height
+            float curveFactor = Math.min(1.0f, dist * 0.1f);  // Adaptive curve factor
+            
+            float cp1x = start.x + adjustedStart.dx * dist * curveFactor;
+            float cp1y = start.y + adjustedStart.dy * dist * curveFactor;
+            
+            float cp2x = end.x - adjustedEnd.dx * dist * curveFactor;
+            float cp2y = end.y - adjustedEnd.dy * dist * curveFactor;
+
+            // if control points are outside work area, clamp the exceeding coordinate(s) to the work bounds
+            if (cp1x < workAreaMinX || cp1x > workAreaMaxX) {
+                cp1x = constrain(cp1x, workAreaMinX, workAreaMaxX);
+            }
+            if (cp1y < workAreaMinY || cp1y > workAreaMaxY) {
+                cp1y = constrain(cp1y, workAreaMinY, workAreaMaxY);
+            }
+            if (cp2x < workAreaMinX || cp2x > workAreaMaxX) {
+                cp2x = constrain(cp2x, workAreaMinX, workAreaMaxX);
+            }
+            if (cp2y < workAreaMinY || cp2y > workAreaMaxY) {
+                cp2y = constrain(cp2y, workAreaMinY, workAreaMaxY);
+            }
             
             // Queue the curve segments using cubic bezier
-            for (int i = 0; i <= G0_CURVE_SEGMENTS; i++) {
-                float t = (float)i / G0_CURVE_SEGMENTS;
+            for (int i = 0; i <= segments; i++) {
+                float t = (float)i / segments;
                 // Cubic bezier calculation
                 float mt = 1 - t;
                 float mt2 = mt * mt;
@@ -231,19 +307,30 @@ class Plot {
                 float t3 = t2 * t;
                 
                 float px = mt3 * start.x + 
-                           3 * mt2 * t * cp1x + 
-                           3 * mt * t2 * cp2x + 
-                           t3 * end.x;
-                           
+                        3 * mt2 * t * cp1x + 
+                        3 * mt * t2 * cp2x + 
+                        t3 * end.x;
+                        
                 float py = mt3 * start.y + 
-                           3 * mt2 * t * cp1y + 
-                           3 * mt * t2 * cp2y + 
-                           t3 * end.y;
+                        3 * mt2 * t * cp1y + 
+                        3 * mt * t2 * cp2y + 
+                        t3 * end.y;
                 
-                // Validate calculated points
+                // Validate and queue calculated points
                 if (!Float.isNaN(px) && !Float.isNaN(py)) {
                     queueGcode("G0 X" + px + " Y" + (-py) + "\n", pathIndex, lineIndex);
                 }
+            }
+        }
+
+        protected List<PathVector> previousPathVectors = new ArrayList<>();
+
+        protected void addPreviousPathVector(PathVector vector) {
+            previousPathVectors.add(vector);
+            
+            // Keep only last 5 points
+            if (previousPathVectors.size() > 5) {
+                previousPathVectors.remove(0);
             }
         }
 
