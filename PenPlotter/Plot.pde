@@ -263,13 +263,13 @@ class Plot {
         
         // Called at the start of path generation to set up initial state
         protected void generatePathSetup() {
-            queueGcode("G0 Z5\n"); // Pen up
+            queueGcode("M280 P0 S100\n"); // Pen up
             queueGcode("G0 X" + homeX + " Y" + (-homeY) + "\n");
         }
         
         // Called at the end of path generation to cleanup/return home
         protected void generatePathCleanup() {
-            queueGcode("G0 Z5\n"); // Pen up
+            queueGcode("M280 P0 S100\n"); // Pen up
             queueGcode("G0 X" + homeX + " Y" + (-homeY) + "\n");
         }
         
@@ -296,7 +296,7 @@ class Plot {
                 pausedX = currentX;
                 pausedY = currentY;
                 // Lift pen when pausing
-                sendImmediateCommand("G0 Z5\n");
+                sendImmediateCommand("M280 P0 S100\n");
             }
         }
 
@@ -305,7 +305,7 @@ class Plot {
                 // First return to the paused position with pen up
                 if (!Float.isNaN(pausedX) && !Float.isNaN(pausedY)) {
                     sendImmediateCommand("G90\n"); // Ensure absolute positioning
-                    sendImmediateCommand("G0 Z5\n"); // Ensure pen is up
+                    sendImmediateCommand("M280 P0 S100\n"); // Pen up
                     sendImmediateCommand(String.format("G0 X%.2f Y%.2f\n", pausedX, pausedY));
                 }
                 

@@ -598,10 +598,12 @@ public void penUp(ControlEvent theEvent)
 
     if (b.getCaptionLabel().getText().indexOf("Up") > 0)
     {
-        currentPlot.sendImmediateCommand("G0 Z5\n");
+        currentPlot.sendImmediateCommand("M280 P0 S100\n");
+        showPenDown();
     } else
     {
-        currentPlot.sendImmediateCommand("G0 Z0\n");
+        currentPlot.sendImmediateCommand("M280 P0 S145\n");
+        showPenUp();
     }
 }
 
@@ -626,8 +628,7 @@ public void goHome()
 {
     String cmd = "G90\n";  // Absolute positioning
     currentPlot.sendImmediateCommand(cmd);
-    cmd = "G0 Z5\n";  // Pen up
-    currentPlot.sendImmediateCommand(cmd);
+    currentPlot.sendImmediateCommand("M280 P0 S100\n");
     cmd = "G0 X" + homeX + " Y" + (-homeY) + "\n";
     currentPlot.sendImmediateCommand(cmd);
 }

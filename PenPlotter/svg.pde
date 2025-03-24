@@ -102,13 +102,13 @@ class SvgPlot extends Plot {
             PathVector entryVec = new PathVector(startX, startY, pathDirX, pathDirY);
             
             // Pen up before curved move
-            queueGcode("G0 Z5\n", i, 0);
+            queueGcode("M280 P0 S100\n");
             
             // Generate curved move using approach vector and entry vector
             queueCurvedG0Move(approachVec, entryVec, i, 0);
             
             // Pen down for drawing
-            queueGcode("G0 Z0\n", i, 0);
+            queueGcode("M280 P0 S145\n");
             
             // Draw the path
             for (int j = 1; j < path.size(); j++) {
@@ -265,7 +265,7 @@ class SvgPlot extends Plot {
         if (file.exists()) {
             // RG.setPolygonizer(RG.ADAPTATIVE);
             RG.setPolygonizer(RG.UNIFORMLENGTH);
-            RG.setPolygonizerLength(0.01f);
+            RG.setPolygonizerLength(0.001f);
             sh = RG.loadShape(filename);
 
             println("loaded " + filename);
@@ -330,6 +330,78 @@ class SvgPlot extends Plot {
             println("number of opt points " + totalPoints(penPaths));
         }
         totalPathLength();
+    }
+
+    private ArrayList<Path> segmentPathAtAngles(RPoint[] pointPath) {
+        ArrayList<Path> segments = new ArrayList<Path>();
+
+        if (pointPath.length < 3) {
+            // If path is too short, just add as is
+            Path path = new Path();
+            for (RPoint point : pointPath) {
+                path.addPoint(point.x, point.y);
+            }
+            segments.add(path);
+            return segments;
+        }
+
+        float angleThreshold = radians(30);
+
+        Path currentSegment = new Path();
+        currentSegment.addPoint(pointPath[0].x, pointPath[0].y);
+        currentSegment.addPoint(pointPath[1].x, pointPath[1].y);
+
+        float prevDirX = pointPath[1].x - pointPath[0].x;
+        float prevDirY = pointPath[1].y - pointPath[0].y;
+        float prevLength = sqrt(prevDirX * prevDirX + prevDirY * prevDirY);
+        
+        if (prevLength > 0) {
+            prevDirX /= prevLength;
+            prevDirY /= prevLength;
+        }
+
+        for (int i = 2; i < pointPath.length; i++) {
+            // Current direction vector
+            float currDirX = pointPath[i].x - pointPath[i-1].x;
+            float currDirY = pointPath[i].y - pointPath[i-1].y;
+            float currLength = sqrt(currDirX * currDirX + currDirY * currDirY);
+            
+            if (currLength > 0) {
+                currDirX /= currLength;
+                currDirY /= currLength;
+                
+                // Calculate the dot product to find the angle
+                float dotProduct = prevDirX * currDirX + prevDirY * currDirY;
+                dotProduct = constrain(dotProduct, -1, 1); // Avoid floating point errors
+                float angle = acos(dotProduct);
+                
+                if (angle > angleThreshold) {
+                    // Significant angle detected, end current segment
+                    segments.add(currentSegment);
+                    
+                    // Start a new segment
+                    currentSegment = new Path();
+                    currentSegment.addPoint(pointPath[i-1].x, pointPath[i-1].y);
+                }
+                
+                // Add the current point to the segment
+                currentSegment.addPoint(pointPath[i].x, pointPath[i].y);
+                
+                // Update previous direction
+                prevDirX = currDirX;
+                prevDirY = currDirY;
+            } else {
+                // Zero-length segment, just add the point
+                currentSegment.addPoint(pointPath[i].x, pointPath[i].y);
+            }
+        }
+        
+        // Add the last segment if not empty
+        if (currentSegment.size() > 0) {
+            segments.add(currentSegment);
+        }
+        
+        return segments;
     }
 
     public void removeShort(float len) {
