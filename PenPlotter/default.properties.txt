@@ -25,7 +25,10 @@ travel_curve.MAX_CURVE_SEGMENTS=2000
 travel_curve.MIN_CURVE_SEGMENTS=10
 travel_curve.CURVE_HEIGHT_FACTOR=0.3
 
-svg_parse.angleThreshold.degrees=10
+motion.preActuationDistance=20.0
+motion.segmentDensityFactor=30
+
+svg_parse.angleThreshold.degrees=90
 svg_parse.polygonizerLength=0.001
 svg_parse.MIN_BULK_LENGTH = 10.0
-svg_parse.MIN_BULK_POINTS = 3
+svg_parse.MIN_BULK_POINTS = 15

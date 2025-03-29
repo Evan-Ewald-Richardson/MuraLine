@@ -73,6 +73,9 @@ class SvgPlot extends Plot {
         // Add initial home position to previous vectors
         addPreviousPathVector(lastPos);
         
+        // For the first path, pen will already be up, so no need for initial pen-up command
+        boolean isFirstPath = true;
+        
         // Process each SVG path
         for (int i = 0; i < penPaths.size(); i++) {
             Path path = penPaths.get(i);
@@ -106,36 +109,57 @@ class SvgPlot extends Plot {
             // Create the entry vector - position is path start, direction is toward second point
             PathVector entryVec = new PathVector(startX, startY, pathDirX, pathDirY);
             
-            // Pen up before curved move
-            if (draw) {
+            // Only for first path do we need initial pen-up - all others will have pen-up from previous path
+            if (isFirstPath && draw) {
                 queueGcode("M280 P0 S"+servoUpValue+"\n");
-                // queueGcode("G0 Z" + servoUpValue + "\n");
+                isFirstPath = false;
             }
             
-            // Generate curved move using approach vector, entry vector, and previous path vectors
-            queueCurvedG0Move(approachVec, entryVec, i, 0, previousPathVectors);
+            // Generate curved approach move with pen-down command injected at the right distance
+            queueCurvedG0MoveWithServo(
+                approachVec, 
+                entryVec, 
+                i, 
+                0, 
+                previousPathVectors, 
+                100.0f,          // Distance for approach curve
+                preActuationDistance,  // Pre-actuation distance 
+                true,            // Pen down is true (we're approaching to draw)
+                servoDownValue   // Servo value for pen down
+            );
             
             // Add approach and entry vectors to previous path vectors
             addPreviousPathVector(approachVec);
             addPreviousPathVector(entryVec);
             
-            // Pen down for drawing
-            if (draw) {
-                queueGcode("M280 P0 S"+servoDownValue+"\n");
-                // queueGcode("G0 Z" + servoDownValue + "\n");
+            // First, calculate the total path length
+            float totalPathLength = 0.0f;
+            for (int j = 1; j < path.size(); j++) {
+                float x1 = path.getPoint(j-1).x * scaleX + machineWidth / 2 + offX;
+                float y1 = path.getPoint(j-1).y * scaleY + homeY + offY;
+                float x2 = path.getPoint(j).x * scaleX + machineWidth / 2 + offX;
+                float y2 = path.getPoint(j).y * scaleY + homeY + offY;
+                
+                float segmentLength = sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2));
+                totalPathLength += segmentLength;
             }
             
-            // Draw the path and track vector points
+            // Now draw the path with pen-up command at the appropriate pre-actuation distance
+            float cumulativeLength = 0.0f;
+            boolean penUpCommandIssued = false;
+            
+            // FIXED: Pre-calculate the point to issue pen-up command
+            float penUpDistance = totalPathLength - preActuationDistance;
+            
             for (int j = 1; j < path.size(); j++) {
+                float prevX = path.getPoint(j-1).x * scaleX + machineWidth / 2 + offX;
+                float prevY = path.getPoint(j-1).y * scaleY + homeY + offY;
                 float x = path.getPoint(j).x * scaleX + machineWidth / 2 + offX;
                 float y = path.getPoint(j).y * scaleY + homeY + offY;
                 
                 if (!Float.isNaN(x) && !Float.isNaN(y)) {
                     // Create a vector for each point in the path
                     if (j > 1) {
-                        float prevX = path.getPoint(j-1).x * scaleX + machineWidth / 2 + offX;
-                        float prevY = path.getPoint(j-1).y * scaleY + homeY + offY;
-                        
                         PathVector pointVector = new PathVector(
                             x, y, 
                             x - prevX, 
@@ -146,8 +170,49 @@ class SvgPlot extends Plot {
                         addPreviousPathVector(pointVector);
                     }
                     
-                    queueGcode("G0 X" + x + " Y" + (-y) + "\n", i, j);
+                    // Calculate current segment length
+                    float segmentLength = sqrt(pow(x - prevX, 2) + pow(y - prevY, 2));
+                    
+                    // FIXED: Simplified logic for pen-up command
+                    // Check if we should issue pen-up command in this segment
+                    if (draw && !penUpCommandIssued && 
+                        cumulativeLength <= penUpDistance && 
+                        (cumulativeLength + segmentLength) >= penUpDistance) {
+                        
+                        // Calculate the exact point along this segment to issue pen-up
+                        float distanceIntoSegment = penUpDistance - cumulativeLength;
+                        float ratio = distanceIntoSegment / segmentLength;
+                        
+                        // Ensure ratio is within bounds to avoid precision errors
+                        ratio = constrain(ratio, 0.0f, 1.0f);
+                        
+                        // Calculate coordinates for pen-up point
+                        float penUpX = prevX + (x - prevX) * ratio;
+                        float penUpY = prevY + (y - prevY) * ratio;
+                        
+                        // Queue G1 move to pen-up point
+                        queueGcode("G1 X" + penUpX + " Y" + (-penUpY) + "\n", i, j);
+                        
+                        // Issue pen-up command
+                        queueGcode("M280 P0 S"+servoUpValue+"\n");
+                        penUpCommandIssued = true;
+                        
+                        // Continue to the endpoint of this segment
+                        queueGcode("G1 X" + x + " Y" + (-y) + "\n", i, j);
+                    } else {
+                        // Normal drawing point
+                        queueGcode("G1 X" + x + " Y" + (-y) + "\n", i, j);
+                    }
+                    
+                    // Update cumulative length
+                    cumulativeLength += segmentLength;
                 }
+            }
+            
+            // FIXED: We shouldn't need this anymore, but add as a failsafe
+            // If we've gone through all points and still haven't issued pen-up
+            if (!penUpCommandIssued && draw) {
+                queueGcode("M280 P0 S"+servoUpValue+"\n");
             }
             
             // Calculate exit vector for next path
@@ -173,6 +238,8 @@ class SvgPlot extends Plot {
             }
         }
     }
+
+
 
     @Override
     protected void updateIndices(int pathIdx, int lineIdx) {

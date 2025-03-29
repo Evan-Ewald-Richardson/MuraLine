@@ -6,7 +6,7 @@ class Plot {
         int plotColor = previewColor;
         int penIndex;
         long lastCommandTime = 0;  // Track when last command was processed
-        int disconnectedDelay = 10;  // Delay between commands when disconnected (milliseconds)
+        int disconnectedDelay = 5;  // Delay between commands when disconnected (milliseconds)
         ArrayList<Path> penPaths = new ArrayList<Path>();
         PGraphics preview = null;
         
@@ -194,7 +194,7 @@ class Plot {
 
         protected int calculateCurveSegments(float distance) {
             // Logarithmic scaling of segments based on distance
-            int segments = (int)(Math.log1p(distance) * 70);
+            int segments = (int)(Math.log1p(distance) * segmentDensityFactor);
             
             // Clamp segments between MIN and MAX
             return Math.max(MIN_CURVE_SEGMENTS, 
@@ -220,8 +220,178 @@ class Plot {
             return vector;
         }
         
-        // Generate a curved G0 move that aligns with entry/exit vectors
-        protected void queueCurvedG0Move(PathVector start, PathVector end, int pathIndex, int lineIndex, List<PathVector> previousPoints) {
+        // // Generate a curved G0 move that aligns with entry/exit vectors
+        // protected void queueCurvedG0Move(PathVector start, PathVector end, int pathIndex, int lineIndex, List<PathVector> previousPoints, float linearDistance) {
+        //     // Validate input coordinates
+        //     if (Float.isNaN(start.x) || Float.isNaN(start.y) || 
+        //         Float.isNaN(end.x) || Float.isNaN(end.y)) {
+        //         println("Warning: Invalid coordinates detected in G0 move, skipping curve generation");
+        //         if (!Float.isNaN(end.x) && !Float.isNaN(end.y)) {
+        //             queueGcode("G0 X" + end.x + " Y" + (-end.y) + "\n", pathIndex, lineIndex);
+        //         }
+        //         return;
+        //     }
+            
+        //     // Calculate distance for scaling
+        //     float dx = end.x - start.x;
+        //     float dy = end.y - start.y;
+        //     float dist = max(sqrt(dx*dx + dy*dy), MIN_CURVE_RADIUS);
+            
+        //     // Properly initialize tangent vectors with directional components
+        //     PathVector startTangent = new PathVector(start.x, start.y, start.dx, start.dy);
+        //     PathVector endTangent = new PathVector(end.x, end.y, end.dx, end.dy);
+            
+        //     if (previousPoints != null && !previousPoints.isEmpty()) {
+        //         // Use average of last few points to stabilize direction vector
+        //         int weight = Math.min(3, previousPoints.size());
+        //         for (int i = 0; i < weight; i++) {
+        //             startTangent = startTangent.averageDirection(previousPoints.get(previousPoints.size() - 1 - i), weight);
+        //         }
+        //     }
+            
+        //     // Normalize tangent vectors
+        //     startTangent.normalize();
+        //     endTangent.normalize();
+            
+        //     // Adjust vectors to stay within work area
+        //     startTangent = adjustVectorToWorkArea(startTangent, workAreaMinX, workAreaMaxX, workAreaMinY, workAreaMaxY);
+        //     endTangent = adjustVectorToWorkArea(endTangent, workAreaMinX, workAreaMaxX, workAreaMinY, workAreaMaxY);
+            
+        //     // Calculate linear segment lengths (clamped to not exceed half the total distance)
+        //     float maxLinearLength = dist / 2.0f;
+        //     float actualLinearDistance = min(linearDistance, maxLinearLength);
+            
+        //     // Create linear entry end point
+        //     PathVector linearEntryEnd = new PathVector(
+        //         start.x + startTangent.dx * actualLinearDistance,
+        //         start.y + startTangent.dy * actualLinearDistance,
+        //         startTangent.dx,
+        //         startTangent.dy
+        //     );
+            
+        //     // Create linear exit start point
+        //     float endSegmentDist = actualLinearDistance;
+            
+        //     // Check if the linear distance would take us beyond the start point
+        //     if (endSegmentDist >= dist) {
+        //         endSegmentDist = dist / 2; // Limit to half the total distance
+        //     }
+            
+        //     PathVector linearExitStart = new PathVector(
+        //         end.x - endTangent.dx * endSegmentDist,
+        //         end.y - endTangent.dy * endSegmentDist,
+        //         endTangent.dx,
+        //         endTangent.dy
+        //     );
+            
+        //     // Validate and constrain points to work area
+        //     linearEntryEnd.x = constrain(linearEntryEnd.x, workAreaMinX, workAreaMaxX);
+        //     linearEntryEnd.y = constrain(linearEntryEnd.y, workAreaMinY, workAreaMaxY);
+        //     linearExitStart.x = constrain(linearExitStart.x, workAreaMinX, workAreaMaxX);
+        //     linearExitStart.y = constrain(linearExitStart.y, workAreaMinY, workAreaMaxY);
+            
+        //     // Calculate segments for each part based on distance
+        //     // Linear entry segment points
+        //     float entryDist = sqrt(
+        //         (linearEntryEnd.x - start.x) * (linearEntryEnd.x - start.x) +
+        //         (linearEntryEnd.y - start.y) * (linearEntryEnd.y - start.y)
+        //     );
+        //     int entrySegments = calculateCurveSegments(entryDist);
+            
+        //     // Generate points for linear entry with consistent density
+        //     for (int i = 0; i <= entrySegments; i++) {
+        //         float t = (float)i / entrySegments;
+        //         float px = start.x + (linearEntryEnd.x - start.x) * t;
+        //         float py = start.y + (linearEntryEnd.y - start.y) * t;
+                
+        //         if (!Float.isNaN(px) && !Float.isNaN(py)) {
+        //             queueGcode("G0 X" + px + " Y" + (-py) + "\n", pathIndex, lineIndex);
+        //         }
+        //     }
+            
+        //     // Recalculate the distance between the transition points
+        //     float curvedDx = linearExitStart.x - linearEntryEnd.x;
+        //     float curvedDy = linearExitStart.y - linearEntryEnd.y;
+        //     float curvedDist = max(sqrt(curvedDx*curvedDx + curvedDy*curvedDy), MIN_CURVE_RADIUS);
+            
+        //     // Calculate number of segments based on curved distance
+        //     int curveSegments = calculateCurveSegments(curvedDist);
+            
+        //     // Calculate control points to ensure tangent continuity with the linear segments
+        //     float curveFactor = Math.min(1.0f, curvedDist * 0.1f);  // Adaptive curve factor
+            
+        //     // Control point 1 continues in the same direction as the entry tangent
+        //     float cp1x = linearEntryEnd.x + startTangent.dx * curvedDist * curveFactor;
+        //     float cp1y = linearEntryEnd.y + startTangent.dy * curvedDist * curveFactor;
+            
+        //     // Control point 2 comes from the direction of the exit tangent
+        //     float cp2x = linearExitStart.x - endTangent.dx * curvedDist * curveFactor;
+        //     float cp2y = linearExitStart.y - endTangent.dy * curvedDist * curveFactor;
+
+        //     // Clamp control points to work area
+        //     cp1x = constrain(cp1x, workAreaMinX, workAreaMaxX);
+        //     cp1y = constrain(cp1y, workAreaMinY, workAreaMaxY);
+        //     cp2x = constrain(cp2x, workAreaMinX, workAreaMaxX);
+        //     cp2y = constrain(cp2y, workAreaMinY, workAreaMaxY);
+            
+        //     // Queue the curve segments using cubic bezier
+        //     // Note: We start at 1 since the last point of the entry segment is already queued
+        //     for (int i = 1; i <= curveSegments; i++) {
+        //         float t = (float)i / curveSegments;
+        //         // Cubic bezier calculation
+        //         float mt = 1 - t;
+        //         float mt2 = mt * mt;
+        //         float mt3 = mt2 * mt;
+        //         float t2 = t * t;
+        //         float t3 = t2 * t;
+                
+        //         float px = mt3 * linearEntryEnd.x + 
+        //                 3 * mt2 * t * cp1x + 
+        //                 3 * mt * t2 * cp2x + 
+        //                 t3 * linearExitStart.x;
+                        
+        //         float py = mt3 * linearEntryEnd.y + 
+        //                 3 * mt2 * t * cp1y + 
+        //                 3 * mt * t2 * cp2y + 
+        //                 t3 * linearExitStart.y;
+                
+        //         // Validate and queue calculated points
+        //         if (!Float.isNaN(px) && !Float.isNaN(py)) {
+        //             queueGcode("G0 X" + px + " Y" + (-py) + "\n", pathIndex, lineIndex);
+        //         }
+        //     }
+            
+        //     // Linear exit segment points
+        //     float exitDist = sqrt(
+        //         (end.x - linearExitStart.x) * (end.x - linearExitStart.x) +
+        //         (end.y - linearExitStart.y) * (end.y - linearExitStart.y)
+        //     );
+        //     int exitSegments = calculateCurveSegments(exitDist);
+            
+        //     // Generate points for linear exit with consistent density
+        //     // Start from 1 since the last point of the curve is already queued
+        //     for (int i = 1; i <= exitSegments; i++) {
+        //         float t = (float)i / exitSegments;
+        //         float px = linearExitStart.x + (end.x - linearExitStart.x) * t;
+        //         float py = linearExitStart.y + (end.y - linearExitStart.y) * t;
+                
+        //         if (!Float.isNaN(px) && !Float.isNaN(py)) {
+        //             queueGcode("G0 X" + px + " Y" + (-py) + "\n", pathIndex, lineIndex);
+        //         }
+        //     }
+        // }
+
+        protected void queueCurvedG0MoveWithServo(
+            PathVector start, 
+            PathVector end, 
+            int pathIndex, 
+            int lineIndex, 
+            List<PathVector> previousPoints, 
+            float linearDistance,
+            float preActuationDistance,
+            boolean isPenDown,
+            int servoValue
+        ) {
             // Validate input coordinates
             if (Float.isNaN(start.x) || Float.isNaN(start.y) || 
                 Float.isNaN(end.x) || Float.isNaN(end.y)) {
@@ -235,78 +405,276 @@ class Plot {
             // Calculate distance for scaling
             float dx = end.x - start.x;
             float dy = end.y - start.y;
-            float dist = max(sqrt(dx*dx + dy*dy), MIN_CURVE_RADIUS);
+            float totalMoveDistance = sqrt(dx*dx + dy*dy);
+            float dist = max(totalMoveDistance, MIN_CURVE_RADIUS);
             
-            // Adjust start and end vectors using previous points
-            PathVector adjustedStart = start;
-            PathVector adjustedEnd = end;
+            // Properly initialize tangent vectors with directional components
+            PathVector startTangent = new PathVector(start.x, start.y, start.dx, start.dy);
+            PathVector endTangent = new PathVector(end.x, end.y, end.dx, end.dy);
             
             if (previousPoints != null && !previousPoints.isEmpty()) {
                 // Use average of last few points to stabilize direction vector
                 int weight = Math.min(3, previousPoints.size());
-                adjustedStart = start;
                 for (int i = 0; i < weight; i++) {
-                    adjustedStart = adjustedStart.averageDirection(previousPoints.get(previousPoints.size() - 1 - i), weight);
+                    startTangent = startTangent.averageDirection(previousPoints.get(previousPoints.size() - 1 - i), weight);
                 }
-                
-                // Similar adjustment for end vector (using future/next points if available)
-                adjustedEnd = end;
             }
+            
+            // Normalize tangent vectors
+            startTangent.normalize();
+            endTangent.normalize();
             
             // Adjust vectors to stay within work area
-            adjustedStart = adjustVectorToWorkArea(adjustedStart, workAreaMinX, workAreaMaxX, workAreaMinY, workAreaMaxY);
-            adjustedEnd = adjustVectorToWorkArea(adjustedEnd, workAreaMinX, workAreaMaxX, workAreaMinY, workAreaMaxY);
+            startTangent = adjustVectorToWorkArea(startTangent, workAreaMinX, workAreaMaxX, workAreaMinY, workAreaMaxY);
+            endTangent = adjustVectorToWorkArea(endTangent, workAreaMinX, workAreaMaxX, workAreaMinY, workAreaMaxY);
             
-            // Calculate number of segments based on distance
-            int segments = calculateCurveSegments(dist);
+            // Calculate linear segment lengths (clamped to not exceed half the total distance)
+            float maxLinearLength = dist / 2.0f;
+            float actualLinearDistance = min(linearDistance, maxLinearLength);
             
-            // Calculate control points with increased curve height
-            float curveFactor = Math.min(1.0f, dist * 0.1f);  // Adaptive curve factor
+            // Create linear entry end point
+            PathVector linearEntryEnd = new PathVector(
+                start.x + startTangent.dx * actualLinearDistance,
+                start.y + startTangent.dy * actualLinearDistance,
+                startTangent.dx,
+                startTangent.dy
+            );
             
-            float cp1x = start.x + adjustedStart.dx * dist * curveFactor;
-            float cp1y = start.y + adjustedStart.dy * dist * curveFactor;
+            // Create linear exit start point
+            float endSegmentDist = actualLinearDistance;
             
-            float cp2x = end.x - adjustedEnd.dx * dist * curveFactor;
-            float cp2y = end.y - adjustedEnd.dy * dist * curveFactor;
-
-            // if control points are outside work area, clamp the exceeding coordinate(s) to the work bounds
-            if (cp1x < workAreaMinX || cp1x > workAreaMaxX) {
-                cp1x = constrain(cp1x, workAreaMinX, workAreaMaxX);
-            }
-            if (cp1y < workAreaMinY || cp1y > workAreaMaxY) {
-                cp1y = constrain(cp1y, workAreaMinY, workAreaMaxY);
-            }
-            if (cp2x < workAreaMinX || cp2x > workAreaMaxX) {
-                cp2x = constrain(cp2x, workAreaMinX, workAreaMaxX);
-            }
-            if (cp2y < workAreaMinY || cp2y > workAreaMaxY) {
-                cp2y = constrain(cp2y, workAreaMinY, workAreaMaxY);
+            // Check if the linear distance would take us beyond the start point
+            if (endSegmentDist >= dist) {
+                endSegmentDist = dist / 2; // Limit to half the total distance
             }
             
-            // Queue the curve segments using cubic bezier
-            for (int i = 0; i <= segments; i++) {
-                float t = (float)i / segments;
-                // Cubic bezier calculation
-                float mt = 1 - t;
-                float mt2 = mt * mt;
-                float mt3 = mt2 * mt;
-                float t2 = t * t;
-                float t3 = t2 * t;
+            PathVector linearExitStart = new PathVector(
+                end.x - endTangent.dx * endSegmentDist,
+                end.y - endTangent.dy * endSegmentDist,
+                endTangent.dx,
+                endTangent.dy
+            );
+            
+            // Validate and constrain points to work area
+            linearEntryEnd.x = constrain(linearEntryEnd.x, workAreaMinX, workAreaMaxX);
+            linearEntryEnd.y = constrain(linearEntryEnd.y, workAreaMinY, workAreaMaxY);
+            linearExitStart.x = constrain(linearExitStart.x, workAreaMinX, workAreaMaxX);
+            linearExitStart.y = constrain(linearExitStart.y, workAreaMinY, workAreaMaxY);
+            
+            // Calculate the actual path segments and their lengths for proper pre-actuation
+            
+            // 1. Linear entry segment
+            float entryDist = sqrt(
+                (linearEntryEnd.x - start.x) * (linearEntryEnd.x - start.x) +
+                (linearEntryEnd.y - start.y) * (linearEntryEnd.y - start.y)
+            );
+            int entrySegments = calculateCurveSegments(entryDist);
+            
+            // 2. Curved segment
+            float curvedDx = linearExitStart.x - linearEntryEnd.x;
+            float curvedDy = linearExitStart.y - linearEntryEnd.y;
+            float curvedDist = max(sqrt(curvedDx*curvedDx + curvedDy*curvedDy), MIN_CURVE_RADIUS);
+            int curveSegments = calculateCurveSegments(curvedDist);
+            
+            // 3. Linear exit segment
+            float exitDist = sqrt(
+                (end.x - linearExitStart.x) * (end.x - linearExitStart.x) +
+                (end.y - linearExitStart.y) * (end.y - linearExitStart.y)
+            );
+            int exitSegments = calculateCurveSegments(exitDist);
+            
+            // Total path length for the entire move
+            float totalPathLength = entryDist + curvedDist + exitDist;
+            
+            // Variables for tracking pen command injection
+            boolean isPenCommandInjected = false;
+            
+            // ------------------------------------------------------------
+            // Generate linear entry segment (no pen command injection here)
+            // ------------------------------------------------------------
+            
+            for (int i = 0; i <= entrySegments; i++) {
+                float t = (float)i / entrySegments;
+                float px = start.x + (linearEntryEnd.x - start.x) * t;
+                float py = start.y + (linearEntryEnd.y - start.y) * t;
                 
-                float px = mt3 * start.x + 
-                        3 * mt2 * t * cp1x + 
-                        3 * mt * t2 * cp2x + 
-                        t3 * end.x;
-                        
-                float py = mt3 * start.y + 
-                        3 * mt2 * t * cp1y + 
-                        3 * mt * t2 * cp2y + 
-                        t3 * end.y;
-                
-                // Validate and queue calculated points
                 if (!Float.isNaN(px) && !Float.isNaN(py)) {
                     queueGcode("G0 X" + px + " Y" + (-py) + "\n", pathIndex, lineIndex);
                 }
+            }
+            
+            // ------------------------------------------------------------
+            // Generate curved segment (possibly with pen command injection if exit segment is too short)
+            // ------------------------------------------------------------
+            
+            // Calculate control points to ensure tangent continuity with the linear segments
+            float curveFactor = Math.min(1.0f, curvedDist * 0.1f);  // Adaptive curve factor
+            
+            // Control point 1 continues in the same direction as the entry tangent
+            float cp1x = linearEntryEnd.x + startTangent.dx * curvedDist * curveFactor;
+            float cp1y = linearEntryEnd.y + startTangent.dy * curvedDist * curveFactor;
+            
+            // Control point 2 comes from the direction of the exit tangent
+            float cp2x = linearExitStart.x - endTangent.dx * curvedDist * curveFactor;
+            float cp2y = linearExitStart.y - endTangent.dy * curvedDist * curveFactor;
+
+            // Clamp control points to work area
+            cp1x = constrain(cp1x, workAreaMinX, workAreaMaxX);
+            cp1y = constrain(cp1y, workAreaMinY, workAreaMaxY);
+            cp2x = constrain(cp2x, workAreaMinX, workAreaMaxX);
+            cp2y = constrain(cp2y, workAreaMinY, workAreaMaxY);
+            
+            // Check if exit segment is too short for pre-actuation
+            boolean useExitSegmentForPenDown = (exitDist >= preActuationDistance);
+            
+            // If exit segment is too short, we need to handle pre-actuation in curve segment
+            if (isPenDown && draw && !useExitSegmentForPenDown) {
+                float remainingDistNeeded = preActuationDistance - exitDist;
+                
+                // Calculate how far into the curve from the end we need to place the command
+                float curvePreActPoint = curvedDist - remainingDistNeeded;
+                
+                // Only inject in curve if we need to (curve is long enough)
+                if (curvePreActPoint > 0 && curvePreActPoint < curvedDist) {
+                    float preActRatio = curvePreActPoint / curvedDist;
+                    int preActSegment = Math.round(preActRatio * curveSegments);
+                    
+                    for (int i = 1; i <= curveSegments; i++) {
+                        float t = (float)i / curveSegments;
+                        
+                        // Cubic bezier calculation
+                        float mt = 1 - t;
+                        float mt2 = mt * mt;
+                        float mt3 = mt2 * mt;
+                        float t2 = t * t;
+                        float t3 = t2 * t;
+                        
+                        float px = mt3 * linearEntryEnd.x + 
+                                3 * mt2 * t * cp1x + 
+                                3 * mt * t2 * cp2x + 
+                                t3 * linearExitStart.x;
+                                
+                        float py = mt3 * linearEntryEnd.y + 
+                                3 * mt2 * t * cp1y + 
+                                3 * mt * t2 * cp2y + 
+                                t3 * linearExitStart.y;
+                        
+                        // Inject pen command at the right point in the curve
+                        if (i == preActSegment && !isPenCommandInjected) {
+                            if (!Float.isNaN(px) && !Float.isNaN(py)) {
+                                queueGcode("G0 X" + px + " Y" + (-py) + "\n", pathIndex, lineIndex);
+                            }
+                            
+                            // Inject pen down command
+                            queueGcode("M280 P0 S" + servoValue + "\n");
+                            isPenCommandInjected = true;
+                        }
+                        else if (!Float.isNaN(px) && !Float.isNaN(py)) {
+                            queueGcode("G0 X" + px + " Y" + (-py) + "\n", pathIndex, lineIndex);
+                        }
+                    }
+                } else {
+                    // Curve is too short as well, just generate curve points
+                    for (int i = 1; i <= curveSegments; i++) {
+                        float t = (float)i / curveSegments;
+                        
+                        // Cubic bezier calculation
+                        float mt = 1 - t;
+                        float mt2 = mt * mt;
+                        float mt3 = mt2 * mt;
+                        float t2 = t * t;
+                        float t3 = t2 * t;
+                        
+                        float px = mt3 * linearEntryEnd.x + 
+                                3 * mt2 * t * cp1x + 
+                                3 * mt * t2 * cp2x + 
+                                t3 * linearExitStart.x;
+                                
+                        float py = mt3 * linearEntryEnd.y + 
+                                3 * mt2 * t * cp1y + 
+                                3 * mt * t2 * cp2y + 
+                                t3 * linearExitStart.y;
+                        
+                        if (!Float.isNaN(px) && !Float.isNaN(py)) {
+                            queueGcode("G0 X" + px + " Y" + (-py) + "\n", pathIndex, lineIndex);
+                        }
+                    }
+                }
+            } else {
+                // Generate normal curve points without pen command 
+                // (exit segment will handle pen down)
+                for (int i = 1; i <= curveSegments; i++) {
+                    float t = (float)i / curveSegments;
+                    
+                    // Cubic bezier calculation
+                    float mt = 1 - t;
+                    float mt2 = mt * mt;
+                    float mt3 = mt2 * mt;
+                    float t2 = t * t;
+                    float t3 = t2 * t;
+                    
+                    float px = mt3 * linearEntryEnd.x + 
+                            3 * mt2 * t * cp1x + 
+                            3 * mt * t2 * cp2x + 
+                            t3 * linearExitStart.x;
+                            
+                    float py = mt3 * linearEntryEnd.y + 
+                            3 * mt2 * t * cp1y + 
+                            3 * mt * t2 * cp2y + 
+                            t3 * linearExitStart.y;
+                    
+                    if (!Float.isNaN(px) && !Float.isNaN(py)) {
+                        queueGcode("G0 X" + px + " Y" + (-py) + "\n", pathIndex, lineIndex);
+                    }
+                }
+            }
+            
+            // ------------------------------------------------------------
+            // Generate linear exit segment with pen command injection if not already injected
+            // ------------------------------------------------------------
+            
+            // If the exit segment is long enough for pre-actuation and pen command wasn't injected before
+            if (isPenDown && draw && !isPenCommandInjected && exitDist >= preActuationDistance) {
+                // Calculate the pre-actuation point within the exit segment
+                float preActDistance = preActuationDistance;
+                float preActRatio = 1.0f - (preActDistance / exitDist);
+                int preActSegment = Math.max(0, Math.round(preActRatio * exitSegments));
+                
+                for (int i = 1; i <= exitSegments; i++) {
+                    float t = (float)i / exitSegments;
+                    float px = linearExitStart.x + (end.x - linearExitStart.x) * t;
+                    float py = linearExitStart.y + (end.y - linearExitStart.y) * t;
+                    
+                    // Inject pen command at pre-actuation point
+                    if (i == preActSegment && !isPenCommandInjected) {
+                        if (!Float.isNaN(px) && !Float.isNaN(py)) {
+                            queueGcode("G0 X" + px + " Y" + (-py) + "\n", pathIndex, lineIndex);
+                        }
+                        
+                        // Inject pen down command
+                        queueGcode("M280 P0 S" + servoValue + "\n");
+                        isPenCommandInjected = true;
+                    }
+                    else if (!Float.isNaN(px) && !Float.isNaN(py)) {
+                        queueGcode("G0 X" + px + " Y" + (-py) + "\n", pathIndex, lineIndex);
+                    }
+                }
+            } else {
+                // Generate normal exit segment points
+                for (int i = 1; i <= exitSegments; i++) {
+                    float t = (float)i / exitSegments;
+                    float px = linearExitStart.x + (end.x - linearExitStart.x) * t;
+                    float py = linearExitStart.y + (end.y - linearExitStart.y) * t;
+                    
+                    if (!Float.isNaN(px) && !Float.isNaN(py)) {
+                        queueGcode("G0 X" + px + " Y" + (-py) + "\n", pathIndex, lineIndex);
+                    }
+                }
+            }
+            
+            // If we still haven't injected the pen command (path too short), do it at the end
+            if (isPenDown && draw && !isPenCommandInjected) {
+                queueGcode("M280 P0 S" + servoValue + "\n");
             }
         }
 

@@ -83,6 +83,9 @@ int MAX_CURVE_SEGMENTS;    // Maximum number of segments
 int MIN_CURVE_SEGMENTS;     // Minimum number of segments
 float CURVE_HEIGHT_FACTOR;
 
+float preActuationDistance;
+int segmentDensityFactor;
+
 
 float MIN_BULK_LENGTH; // adjust as needed
 int MIN_BULK_POINTS;       // adjust as needed
@@ -285,6 +288,9 @@ public void setup() {
     MAX_CURVE_SEGMENTS = Integer.parseInt(props.getProperty("travel_curve.MAX_CURVE_SEGMENTS"));
     MIN_CURVE_SEGMENTS = Integer.parseInt(props.getProperty("travel_curve.MIN_CURVE_SEGMENTS"));
     CURVE_HEIGHT_FACTOR = Float.parseFloat(props.getProperty("travel_curve.CURVE_HEIGHT_FACTOR"));
+
+    preActuationDistance = Float.parseFloat(props.getProperty("motion.preActuationDistance"));
+    segmentDensityFactor = Integer.parseInt(props.getProperty("motion.segmentDensityFactor"));
 
     angleThreshold = radians(Float.parseFloat(props.getProperty("svg_parse.angleThreshold.degrees")));
     polygonizerLength = Float.parseFloat(props.getProperty("svg_parse.polygonizerLength"));
