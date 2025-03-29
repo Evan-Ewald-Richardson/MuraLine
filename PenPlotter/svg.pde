@@ -20,39 +20,6 @@ class SvgPlot extends Plot {
         super.reset();
     }
 
-    public void drawPlottedLine() {
-        if (svgPathIndex < 0) {
-            return;
-        }
-        float cx = homeX;
-        float cy = homeY;
-
-        for (int i = 0; i < penPaths.size(); i++) {
-            for (int j = 0; j < penPaths.get(i).size() - 1; j++) {
-                if (i > svgPathIndex || (i == svgPathIndex && j > svgLineIndex)) return;
-                float x1 = penPaths.get(i).getPoint(j).x * scaleX + machineWidth / 2 + offX;
-                float y1 = penPaths.get(i).getPoint(j).y * scaleY + homeY + offY;
-                float x2 = penPaths.get(i).getPoint(j + 1).x * scaleX + machineWidth / 2 + offX;
-                float y2 = penPaths.get(i).getPoint(j + 1).y * scaleY + homeY + offY;
-
-                if (j == 0) {
-                    // pen up
-                    stroke(rapidColor);
-                    sline(cx, cy, x1, y1);
-                    cx = x1;
-                    cy = y1;
-                }
-
-                stroke(penColor);
-                sline(cx, cy, x2, y2);
-                cx = x2;
-                cy = y2;
-
-                if (i == svgPathIndex && j == svgLineIndex)
-                    return;
-            }
-        }
-    }
     String progress()
     {
         if( svgPathIndex > 0)
@@ -239,8 +206,6 @@ class SvgPlot extends Plot {
         }
     }
 
-
-
     @Override
     protected void updateIndices(int pathIdx, int lineIdx) {
         svgPathIndex = pathIdx;
@@ -272,92 +237,61 @@ class SvgPlot extends Plot {
 
     @Override
     public void draw() {
-        // Draw completed and remaining paths
-        lastX = -offX;
-        lastY = -offY;
+        // Start at the home position
+        float curX = homeX;
+        float curY = homeY;
+        
+        // Set basic drawing parameters
         strokeWeight(0.1f);
         noFill();
         
-        float prevEndX = homeX;
-        float prevEndY = homeY;
-        
-        for (int i = 0; i < penPaths.size(); i++) {
-            Path p = penPaths.get(i);
-            
-            // Draw G0 move to path start
-            stroke(rapidColor);
-            float startX = p.first().x * scaleX + homeX + offX;
-            float startY = p.first().y * scaleY + homeY + offY;
-            
-            // Draw curved G0 move from previous end point to current start point
-            float dx = startX - prevEndX;
-            float dy = startY - prevEndY;
-            float dist = sqrt(dx*dx + dy*dy);
-            
-            if (dist > 0.01) {
-                float mpx = (prevEndX + startX) / 2;
-                float mpy = (prevEndY + startY) / 2;
-                
-                // Calculate perpendicular vector
-                float perpX = -dy / dist;
-                float perpY = dx / dist;
-                
-                // Control points
-                float cp1x = prevEndX + dx/3 + perpX * dist * CURVE_HEIGHT_FACTOR;
-                float cp1y = prevEndY + dy/3 + perpY * dist * CURVE_HEIGHT_FACTOR;
-                float cp2x = prevEndX + dx*2/3 + perpX * dist * CURVE_HEIGHT_FACTOR;
-                float cp2y = prevEndY + dy*2/3 + perpY * dist * CURVE_HEIGHT_FACTOR;
-                
-                drawBezierCurve(prevEndX, prevEndY, cp1x, cp1y, cp2x, cp2y, startX, startY);
-            } else {
-                sline(prevEndX, prevEndY, startX, startY);
-            }
-            
-            // Draw the actual path
-            stroke(i < svgPathIndex || (i == svgPathIndex && currentCommand != null) ? penColor : plotColor);
-            beginShape();
-            for (int j = 0; j < p.size(); j++) {
-                if (i == svgPathIndex && j == svgLineIndex && currentCommand != null) {
-                    // Stop drawing at current line for current path
+        // Iterate over the stored GCode commands
+        for (GCodeCommand cmd : gcodeQueueCopy) {
+            strokeWeight((isPlotting() && (cmd.queueIndex > currentQueueIndex)) ? 0.1f : 0.5f);
+            switch(cmd.commandType) {
+                case "TRAVEL_MOVE":
+                    // Set the travel move color
+                    stroke(travelColor);
+                    // If valid coordinates exist, draw a line from current to target
+                    if (!Float.isNaN(cmd.x) && !Float.isNaN(cmd.y)) {
+                        float targetX = cmd.x;
+                        float targetY = -cmd.y;
+                        sline(curX, curY, targetX, targetY);
+                        curX = targetX;
+                        curY = targetY;
+                    }
                     break;
-                }
-                vertex(scaleX(p.getPoint(j).x * scaleX + homeX + offX), 
-                       scaleY(p.getPoint(j).y * scaleY + homeY + offY));
+                    
+                case "PAINT_MOVE":
+                    // Set the paint move color
+                    stroke(paintColor);
+                    if (!Float.isNaN(cmd.x) && !Float.isNaN(cmd.y)) {
+                        float targetX = cmd.x;
+                        float targetY = -cmd.y;
+                        sline(curX, curY, targetX, targetY);
+                        curX = targetX;
+                        curY = targetY;
+                    }
+                    break;
+                    
+                case "SERVO_CONTROL":
+                    fill(cmd.isPenUp ? servoUpCircleColor : servoDownCircleColor);
+                    float dotX = scaleX(curX);
+                    float dotY = scaleY(curY);
+
+                    ellipse(dotX, dotY, svgScale*userScale*10*zoomScale, svgScale*userScale*10*zoomScale);
+                    noFill();
+
+                    break;
+                    
+                case "OTHER":
+                    // Do not draw anything for OTHER command types
+                    break;
             }
-            endShape();
-            
-            // Update previous end point for next curve
-            prevEndX = p.last().x * scaleX + homeX + offX;
-            prevEndY = p.last().y * scaleY + homeY + offY;
         }
         
-        // Draw final return to home
-        stroke(rapidColor);
-        float dx = homeX - prevEndX;
-        float dy = homeY - prevEndY;
-        float dist = sqrt(dx*dx + dy*dy);
-        
-        if (dist > 0.01) {
-            float mpx = (prevEndX + homeX) / 2;
-            float mpy = (prevEndY + homeY) / 2;
-            
-            // Calculate perpendicular vector
-            float perpX = -dy / dist;
-            float perpY = dx / dist;
-            
-            // Control points
-            float cp1x = prevEndX + dx/3 + perpX * dist * CURVE_HEIGHT_FACTOR;
-            float cp1y = prevEndY + dy/3 + perpY * dist * CURVE_HEIGHT_FACTOR;
-            float cp2x = prevEndX + dx*2/3 + perpX * dist * CURVE_HEIGHT_FACTOR;
-            float cp2y = prevEndY + dy*2/3 + perpY * dist * CURVE_HEIGHT_FACTOR;
-            
-            drawBezierCurve(prevEndX, prevEndY, cp1x, cp1y, cp2x, cp2y, homeX, homeY);
-        } else {
-            sline(prevEndX, prevEndY, homeX, homeY);
-        }
-        
-        // Draw current command movement
-        super.drawCurrentCommand();
+        // Optionally, draw the current command movement if needed
+        // super.drawCurrentCommand();
     }
 
     public void load(String filename) {

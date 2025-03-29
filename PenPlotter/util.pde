@@ -225,10 +225,6 @@ JFileChooser fc;
                                                {
                                                    currentPlot = new SvgPlot();
                                                }
-                                               else if (gcodeFile(file.getPath()))
-                                               {
-                                                   currentPlot = new GcodePlot();
-                                               }
                                                else if (imageFile(file.getPath()))
                                                {
                                                     currentPlot = stipplePlot;

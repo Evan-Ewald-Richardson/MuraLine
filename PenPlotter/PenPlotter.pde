@@ -140,10 +140,12 @@ int statusColor = color(0, 0, 0); // rgb(0, 0, 0)
 int motorOnColor = color(255, 0, 0); // rgb(255, 0, 0)
 int motorOffColor = color(0, 0, 255); // rgb(0, 0, 255)
 
-int penColor = color(0, 0, 0,255); // rgba(0, 0, 0, 1)  
+int paintColor = color(0, 0, 0,255); // rgba(0, 0, 0, 1)  
 int previewColor = color(0,0,0,255); // rgba(0, 0, 0, 1)
 int whilePlottingColor = color(0,0,0,64); // rgba(0, 0, 0, 0.25)
-int rapidColor = color(0,255,0,64); // rgba(0, 255, 0, 0.25)
+int travelColor = color(0,255,0,64); // rgba(0, 255, 0, 0.25)
+int servoUpCircleColor = color(65,148,243,128); // rgba(65, 148, 243, 0.5)
+int servoDownCircleColor = color(243,166,65,128); // rgba(243, 166, 65, 0.5)
 
 int buttonPressColor = color(253, 236, 239); // rgb(253, 236, 239)
 int buttonHoverColor = color(249, 197, 208); // rgb(249, 197, 208)
@@ -169,6 +171,8 @@ int buttonTextColor = color(30, 39, 46); // rgb(30, 39, 46)
 int buttonBorderColor = color(30, 39, 46); // rgb(30, 39, 46)
 
 Plot currentPlot = new Plot();
+boolean plotLocked = false;
+
 float lastX = 0;
 float lastY = 0;
 PApplet applet = this;
@@ -596,7 +600,6 @@ public void updatePos(float x, float y)
 
 public void sline(float x1, float y1, float x2, float y2)
 {
-    strokeWeight(0.5f);
     line(scaleX(x1), scaleY(y1), scaleX(x2), scaleY(y2));
 }
 
@@ -623,6 +626,9 @@ public void draw()
 
     if (currentPlot.isLoaded())
     {
+        if (!plotLocked){
+            currentPlot.plot();
+        }   
         currentPlot.draw();
     }
 

@@ -274,7 +274,7 @@
             preview.clear();
             preview.strokeWeight(0.1);
   
-            preview.stroke(penColor);
+            preview.stroke(paintColor);
             preview.beginShape();
             for (int i = 0; i < penIndex; i++) {
                Path p = penPaths.get(i);

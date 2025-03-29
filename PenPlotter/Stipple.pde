@@ -901,7 +901,7 @@
 
                     for (i = 0; i < (particleRouteLength - 1); ++i) {
                         if (i < penIndex)
-                            stroke(penColor);
+                            stroke(paintColor);
                         else
                             stroke(plotColor);
                         Vec2D p1 = particles[particleRoute[i]];
@@ -926,7 +926,7 @@
                     // point(scaleX(px+homeX-simage.width/2+offX), scaleY(py+homeY+offY));
                     strokeWeight(1);
                     if (i < penIndex)
-                        stroke(penColor);
+                        stroke(paintColor);
                     else
                       stroke(plotColor);
                     drawDot(px, py);

@@ -525,8 +525,9 @@ public void plot(ControlEvent theEvent)
         pauseButton.setCaptionLabel("Pause");
         ((MyButton)pauseButton).setImg(pauseImg);
     } else {
-        if (currentPlot.isLoaded() && !currentPlot.isPlotting()) {
+        if (currentPlot.isLoaded()) {
             currentPlot.plot();
+            currentPlot.plottingStarted();
             if(currentPlot.isPlotting()) {
                 plotButton.setCaptionLabel("Abort");
                 ((MyButton)plotButton).setImg(pauseImg);
