@@ -4,9 +4,9 @@
 com.baudrate=250000
 com.serialPort=1
 
-servo.downValue=145
-servo.upValue=100
-servo.dwell=250
+servo.downValue=150
+servo.upValue=110
+servo.dwell=0
 
 machine.width=2530
 machine.height=1870
@@ -20,10 +20,12 @@ paper.width=2030
 paper.height=1400
 paper.top=400
 
-travel_curve.MIN_CURVE_RADIUS=100.0
+travel_curve.MIN_CURVE_RADIUS=600.0
 travel_curve.MAX_CURVE_SEGMENTS=2000
-travel_curve.MIN_CURVE_SEGMENTS=200
+travel_curve.MIN_CURVE_SEGMENTS=10
 travel_curve.CURVE_HEIGHT_FACTOR=0.3
 
-svg_parse.angleThreshold.degrees=30
+svg_parse.angleThreshold.degrees=10
 svg_parse.polygonizerLength=0.001
+svg_parse.MIN_BULK_LENGTH = 10.0
+svg_parse.MIN_BULK_POINTS = 3

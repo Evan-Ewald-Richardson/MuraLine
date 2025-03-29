@@ -107,7 +107,10 @@ class SvgPlot extends Plot {
             PathVector entryVec = new PathVector(startX, startY, pathDirX, pathDirY);
             
             // Pen up before curved move
-            queueGcode("M280 P0 S"+servoUpValue+"\n");
+            if (draw) {
+                queueGcode("M280 P0 S"+servoUpValue+"\n");
+                // queueGcode("G0 Z" + servoUpValue + "\n");
+            }
             
             // Generate curved move using approach vector, entry vector, and previous path vectors
             queueCurvedG0Move(approachVec, entryVec, i, 0, previousPathVectors);
@@ -117,7 +120,10 @@ class SvgPlot extends Plot {
             addPreviousPathVector(entryVec);
             
             // Pen down for drawing
-            queueGcode("M280 P0 S"+servoDownValue+"\n");
+            if (draw) {
+                queueGcode("M280 P0 S"+servoDownValue+"\n");
+                // queueGcode("G0 Z" + servoDownValue + "\n");
+            }
             
             // Draw the path and track vector points
             for (int j = 1; j < path.size(); j++) {
@@ -140,7 +146,7 @@ class SvgPlot extends Plot {
                         addPreviousPathVector(pointVector);
                     }
                     
-                    queueGcode("G1 X" + x + " Y" + (-y) + "\n", i, j);
+                    queueGcode("G0 X" + x + " Y" + (-y) + "\n", i, j);
                 }
             }
             
@@ -361,7 +367,7 @@ class SvgPlot extends Plot {
         ArrayList<Path> segments = new ArrayList<Path>();
 
         if (pointPath.length < 3) {
-            // If path is too short, just add as is
+            // If the path is too short, just add it as is.
             Path path = new Path();
             for (RPoint point : pointPath) {
                 path.addPoint(point.x, point.y);
@@ -370,57 +376,73 @@ class SvgPlot extends Plot {
             return segments;
         }
 
+        // Start the bulk segment with the first two points.
         Path currentSegment = new Path();
         currentSegment.addPoint(pointPath[0].x, pointPath[0].y);
         currentSegment.addPoint(pointPath[1].x, pointPath[1].y);
+        
+        // Track the total length of the current bulk segment.
+        float currentSegmentLength = sqrt((pointPath[1].x - pointPath[0].x) * (pointPath[1].x - pointPath[0].x) +
+                                        (pointPath[1].y - pointPath[0].y) * (pointPath[1].y - pointPath[0].y));
 
+        // Calculate the initial direction vector.
         float prevDirX = pointPath[1].x - pointPath[0].x;
         float prevDirY = pointPath[1].y - pointPath[0].y;
         float prevLength = sqrt(prevDirX * prevDirX + prevDirY * prevDirY);
-
         if (prevLength > 0) {
             prevDirX /= prevLength;
             prevDirY /= prevLength;
         }
 
+        // Process the remaining points.
         for (int i = 2; i < pointPath.length; i++) {
-            // Current direction vector
+            // Compute the current vector.
             float currDirX = pointPath[i].x - pointPath[i-1].x;
             float currDirY = pointPath[i].y - pointPath[i-1].y;
             float currLength = sqrt(currDirX * currDirX + currDirY * currDirY);
+            
+            // The increment in bulk length is the distance between points.
+            float segmentIncrement = currLength;
             
             if (currLength > 0) {
                 currDirX /= currLength;
                 currDirY /= currLength;
                 
-                // Calculate the dot product to find the angle
+                // Compute the angle between the previous and current directions.
                 float dotProduct = prevDirX * currDirX + prevDirY * currDirY;
-                dotProduct = constrain(dotProduct, -1, 1); // Avoid floating point errors
+                dotProduct = constrain(dotProduct, -1, 1); // avoid floating-point issues
                 float angle = acos(dotProduct);
                 
                 if (angle > angleThreshold) {
-                    // Significant angle detected, end current segment
-                    segments.add(currentSegment);
+                    // At a significant angle break, check if the current bulk segment is substantial.
+                    if (currentSegmentLength >= MIN_BULK_LENGTH && currentSegment.size() >= MIN_BULK_POINTS) {
+                        segments.add(currentSegment);
+                    }
+                    // Otherwise, discard this bulk group.
                     
-                    // Start a new segment
+                    // Start a new bulk segment beginning from the last point.
                     currentSegment = new Path();
                     currentSegment.addPoint(pointPath[i-1].x, pointPath[i-1].y);
+                    currentSegmentLength = 0; // reset the length counter for the new group
                 }
                 
-                // Add the current point to the segment
+                // Add the current point to the bulk segment and update the total length.
                 currentSegment.addPoint(pointPath[i].x, pointPath[i].y);
+                currentSegmentLength += segmentIncrement;
                 
-                // Update previous direction
+                // Update the previous direction.
                 prevDirX = currDirX;
                 prevDirY = currDirY;
             } else {
-                // Zero-length segment, just add the point
+                // In the case of a zero-length movement, just add the point.
                 currentSegment.addPoint(pointPath[i].x, pointPath[i].y);
             }
         }
         
-        // Add the last segment if not empty
-        if (currentSegment.size() > 0) {
+        // After processing all points, check the final bulk segment.
+        if (currentSegment.size() > 0 &&
+            currentSegmentLength >= MIN_BULK_LENGTH &&
+            currentSegment.size() >= MIN_BULK_POINTS) {
             segments.add(currentSegment);
         }
         

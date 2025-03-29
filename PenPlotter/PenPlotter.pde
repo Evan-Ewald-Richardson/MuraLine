@@ -83,6 +83,10 @@ int MAX_CURVE_SEGMENTS;    // Maximum number of segments
 int MIN_CURVE_SEGMENTS;     // Minimum number of segments
 float CURVE_HEIGHT_FACTOR;
 
+
+float MIN_BULK_LENGTH; // adjust as needed
+int MIN_BULK_POINTS;       // adjust as needed
+
 float angleThreshold;
 float polygonizerLength;
 
@@ -218,7 +222,7 @@ public void changeAppTitle(String title) {
 
 public void setup() {
 
-    size(1280, 800, JAVA2D);
+    size(1480, 800, JAVA2D);
     surface.setResizable(true);
     PImage icon = loadImage(ICON);
     surface.setIcon(icon);
@@ -284,6 +288,9 @@ public void setup() {
 
     angleThreshold = radians(Float.parseFloat(props.getProperty("svg_parse.angleThreshold.degrees")));
     polygonizerLength = Float.parseFloat(props.getProperty("svg_parse.polygonizerLength"));
+    MIN_BULK_LENGTH = Float.parseFloat(props.getProperty("svg_parse.MIN_BULK_LENGTH"));
+    MIN_BULK_POINTS = Integer.parseInt(props.getProperty("svg_parse.MIN_BULK_POINTS"));
+
 
     updateScale();
 
@@ -598,36 +605,30 @@ public void draw()
         prevHeight = height;
     }
 
-    if(draw)
+    drawPage();
+    drawOrigin();
+    drawTicks(); 
+    drawPaper();
+
+    for (Handle handle : handles) {
+        handle.update();
+        handle.display();
+    }
+
+    if (currentPlot.isLoaded())
     {
+        currentPlot.draw();
+    }
+
+    drawGondola();
 
 
-        drawPage();
-        drawOrigin();
-        drawTicks(); 
-        drawPaper();
-
-        for (Handle handle : handles) {
-            handle.update();
-            handle.display();
-        }
-    
-        if (currentPlot.isLoaded())
-        {
-            currentPlot.draw();
-        }
-    
-        drawGondola();
-
-
-        // try just skipping the image draw here
-        if (oimg != null)
-        {
-        image(oimg, imageX, imageY, imageWidth, imageHeight);
-        drawImageFrame();
-        drawSelector();
-        }
-
+    // try just skipping the image draw here
+    if (oimg != null)
+    {
+    image(oimg, imageX, imageY, imageWidth, imageHeight);
+    drawImageFrame();
+    drawSelector();
     }
 
     if (jogX != 0)

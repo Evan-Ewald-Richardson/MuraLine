@@ -158,18 +158,25 @@ class Com {
     }
     
     public void sendPenUp() {
-        send("G4 P"+servoDwell+"\n");//pause
-        send("M280 P0 S"+servoUpValue+"\n");
-        send("G4 P"+servoDwell+"\n");
+        if (draw) {
+            // send("G4 P"+servoDwell+"\n");//pause
+            send("M280 P0 S"+servoUpValue+"\n");
+            // send("G0 Z" + servoUpValue + "\n");
+            // send("G4 P"+servoDwell+"\n");
+        }
 
         showPenDown();
     }
     
 
     public void sendPenDown() {
-        send("G4 P"+servoDwell+"\n");
-        send("M280 P0 S"+servoDownValue+"\n");
-        send("G4 P"+servoDwell+"\n");
+        if (draw) {
+            // send("G4 P"+servoDwell+"\n");
+            // send("G0 Z" + servoDownValue + "\n");
+            send("M280 P0 S"+servoDownValue+"\n");
+            // send("G4 P"+servoDwell+"\n");
+        }
+
         showPenUp();
     }
 

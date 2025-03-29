@@ -339,7 +339,7 @@ public void createcp5GUI()
     addButton("mirrorY","Flip Y",leftMargin,posY+=ySpace, 3);
 
 
-    scaleSlider = addSlider(leftMargin,posY += ySpace+10,"scale", "SCALE", 0.1f, 5, userScale);
+    scaleSlider = addSlider(leftMargin,posY += ySpace+10,"scale", "SCALE", 0.1f, 10, userScale);
 
     speedSlider = addSlider(leftMargin,posY += ySpace/2,"speedChanged", "SPEED", 100, 60000, 2000);
     speedSlider.onRelease(speedrelease)
@@ -356,9 +356,11 @@ public void createcp5GUI()
     t4Slider = addSlider(imageX+20,imageY+imageHeight+60+4*ySpace/2,"t4", "T4 -", 0, 255, 32).onRelease(thresholdrelease).onReleaseOutside(thresholdrelease);
 
     penUpButton = addButton("penUp", "Pen Up", leftMargin, posY+=ySpace, 4);
+    noDrawButton = addButton("nodraw", "No Draw", leftMargin, posY+=ySpace, 4);
 
     addButton("goHome", "Go Home", leftMargin, posY+=ySpace, 4);
     addButton("off", "Motors Off", leftMargin, posY+=ySpace, 4);
+    
 
     stipplePlot.init();
 

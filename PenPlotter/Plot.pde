@@ -194,7 +194,7 @@ class Plot {
 
         protected int calculateCurveSegments(float distance) {
             // Logarithmic scaling of segments based on distance
-            int segments = (int)(Math.log1p(distance) * 30);
+            int segments = (int)(Math.log1p(distance) * 70);
             
             // Clamp segments between MIN and MAX
             return Math.max(MIN_CURVE_SEGMENTS, 
@@ -337,13 +337,17 @@ class Plot {
         
         // Called at the start of path generation to set up initial state
         protected void generatePathSetup() {
-            queueGcode("M280 P0 S"+servoUpValue+"\n"); // Pen up
+            if (draw) {
+                queueGcode("M280 P0 S"+servoUpValue+"\n"); // Pen up
+            }
             queueGcode("G0 X" + homeX + " Y" + (-homeY) + "\n");
         }
         
         // Called at the end of path generation to cleanup/return home
         protected void generatePathCleanup() {
-            queueGcode("M280 P0 S"+servoUpValue+"\n"); // Pen up
+            if (draw) {
+                queueGcode("M280 P0 S"+servoUpValue+"\n"); // Pen up
+            }
             queueGcode("G0 X" + homeX + " Y" + (-homeY) + "\n");
         }
         
