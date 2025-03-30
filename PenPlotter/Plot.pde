@@ -178,8 +178,8 @@ class Plot {
 
     protected PathVector adjustVectorToWorkArea(PathVector vector, float workAreaMinX, float workAreaMaxX, float workAreaMinY, float workAreaMaxY) {
         // Check if the current vector points outside the work area
-        float projectedX = vector.x + vector.dx * MIN_CURVE_RADIUS;
-        float projectedY = vector.y + vector.dy * MIN_CURVE_RADIUS;
+        float projectedX = vector.x + vector.dx * minCurveRadius;
+        float projectedY = vector.y + vector.dy * minCurveRadius;
         
         // Adjust direction if projection goes outside work area
         if (projectedX < workAreaMinX || projectedX > workAreaMaxX ||
@@ -203,7 +203,7 @@ class Plot {
         int lineIndex, 
         List<PathVector> previousPoints, 
         float linearDistance,
-        float preActuationDistance,
+        float preActuationDistanceDown,
         boolean isPenDown,
         int servoValue
     ) {
@@ -221,7 +221,7 @@ class Plot {
         float dx = end.x - start.x;
         float dy = end.y - start.y;
         float totalMoveDistance = sqrt(dx*dx + dy*dy);
-        float dist = max(totalMoveDistance, MIN_CURVE_RADIUS);
+        float dist = max(totalMoveDistance, minCurveRadius);
         
         // Properly initialize tangent vectors with directional components
         PathVector startTangent = new PathVector(start.x, start.y, start.dx, start.dy);
@@ -283,12 +283,13 @@ class Plot {
             (linearEntryEnd.x - start.x) * (linearEntryEnd.x - start.x) +
             (linearEntryEnd.y - start.y) * (linearEntryEnd.y - start.y)
         );
-        int entrySegments = calculateCurveSegments(entryDist);
+        // int entrySegments = calculateCurveSegments(entryDist);
+        int entrySegments = 20;
         
         // 2. Curved segment
         float curvedDx = linearExitStart.x - linearEntryEnd.x;
         float curvedDy = linearExitStart.y - linearEntryEnd.y;
-        float curvedDist = max(sqrt(curvedDx*curvedDx + curvedDy*curvedDy), MIN_CURVE_RADIUS);
+        float curvedDist = max(sqrt(curvedDx*curvedDx + curvedDy*curvedDy), minCurveRadius);
         int curveSegments = calculateCurveSegments(curvedDist);
         
         // 3. Linear exit segment
@@ -296,7 +297,8 @@ class Plot {
             (end.x - linearExitStart.x) * (end.x - linearExitStart.x) +
             (end.y - linearExitStart.y) * (end.y - linearExitStart.y)
         );
-        int exitSegments = calculateCurveSegments(exitDist);
+        // int exitSegments = calculateCurveSegments(exitDist);
+        int exitSegments = 20;
         
         // Total path length for the entire move
         float totalPathLength = entryDist + curvedDist + exitDist;
@@ -340,11 +342,11 @@ class Plot {
         cp2y = constrain(cp2y, workAreaMinY, workAreaMaxY);
         
         // Check if exit segment is too short for pre-actuation
-        boolean useExitSegmentForPenDown = (exitDist >= preActuationDistance);
+        boolean useExitSegmentForPenDown = (exitDist >= preActuationDistanceDown);
         
         // If exit segment is too short, we need to handle pre-actuation in curve segment
         if (isPenDown && draw && !useExitSegmentForPenDown) {
-            float remainingDistNeeded = preActuationDistance - exitDist;
+            float remainingDistNeeded = preActuationDistanceDown - exitDist;
             
             // Calculate how far into the curve from the end we need to place the command
             float curvePreActPoint = curvedDist - remainingDistNeeded;
@@ -449,9 +451,9 @@ class Plot {
         // ------------------------------------------------------------
         
         // If the exit segment is long enough for pre-actuation and pen command wasn't injected before
-        if (isPenDown && draw && !isPenCommandInjected && exitDist >= preActuationDistance) {
+        if (isPenDown && draw && !isPenCommandInjected && exitDist >= preActuationDistanceDown) {
             // Calculate the pre-actuation point within the exit segment
-            float preActDistance = preActuationDistance;
+            float preActDistance = preActuationDistanceDown;
             float preActRatio = 1.0f - (preActDistance / exitDist);
             int preActSegment = Math.max(0, Math.round(preActRatio * exitSegments));
             

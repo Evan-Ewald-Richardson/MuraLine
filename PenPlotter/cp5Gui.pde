@@ -10,10 +10,12 @@ Slider speedSlider;
 Slider scaleSlider;
 Slider penSlider;
 
-Slider t1Slider;
-Slider t2Slider;
-Slider t3Slider;
-Slider t4Slider;
+Slider minRadiusSlider;
+// Slider curveHeightFactorSlider;
+Slider preActuationDistanceUpSlider;
+Slider preActuationDistanceDownSlider;
+Slider angleThresholdSlider;
+Slider minSegmentsSlider;
 
 PImage penUpImg;
 PImage penDownImg;
@@ -350,17 +352,36 @@ public void createcp5GUI()
     penSlider = addSlider(imageX+20,imageY+imageHeight+60+ySpace/2,"penWidth", "PEN WIDTH", 0.1f, 5, 0.5f);
     penSlider.onRelease(penrelease)
             .onReleaseOutside(penrelease);
-    t1Slider = addSlider(imageX+20,imageY+imageHeight+60+ySpace/2,"t1", "T1 \\", 0, 255, 192).onRelease(thresholdrelease).onReleaseOutside(thresholdrelease);
-    t2Slider = addSlider(imageX+20,imageY+imageHeight+60+2*ySpace/2,"t2", "T2 /", 0, 255, 128).onRelease(thresholdrelease).onReleaseOutside(thresholdrelease);
-    t3Slider = addSlider(imageX+20,imageY+imageHeight+60+3*ySpace/2,"t3", "T3 |", 0, 255, 64).onRelease(thresholdrelease).onReleaseOutside(thresholdrelease);
-    t4Slider = addSlider(imageX+20,imageY+imageHeight+60+4*ySpace/2,"t4", "T4 -", 0, 255, 32).onRelease(thresholdrelease).onReleaseOutside(thresholdrelease);
-
+    
     penUpButton = addButton("penUp", "Pen Up", leftMargin, posY+=ySpace, 4);
     noDrawButton = addButton("nodraw", "No Draw", leftMargin, posY+=ySpace, 4);
 
     addButton("goHome", "Go Home", leftMargin, posY+=ySpace, 4);
     addButton("off", "Motors Off", leftMargin, posY+=ySpace, 4);
     
+    minRadiusSlider = addSlider(leftMargin, posY+=ySpace+10,"minCurveRadius", "RADIUS", 0, 1000, minCurveRadius);
+    minRadiusSlider.onRelease(minRadiusrelease)
+            .onReleaseOutside(minRadiusrelease);
+
+    // curveHeightFactorSlider = addSlider(leftMargin, posY+=ySpace,"CURVE_HEIGHT_FACTOR", "CURVE HEIGHT FACTOR", 0, 1, CURVE_HEIGHT_FACTOR);
+    // curveHeightFactorSlider.onRelease(curveHeightFactorrelease)
+    //         .onReleaseOutside(curveHeightFactorrelease);
+
+    preActuationDistanceUpSlider = addSlider(leftMargin, posY+=ySpace/2,"preActuationDistanceUp", "UP ACT", 0, 40, preActuationDistanceUp);
+    preActuationDistanceUpSlider.onRelease(preActuationDistanceUprelease)
+            .onReleaseOutside(preActuationDistanceUprelease);
+
+    preActuationDistanceDownSlider = addSlider(leftMargin, posY+=ySpace/2,"preActuationDistanceDown", "DOWN ACT", 0, 40, preActuationDistanceDown);
+    preActuationDistanceDownSlider.onRelease(preActuationDistanceDownrelease)
+            .onReleaseOutside(preActuationDistanceDownrelease);
+    
+    angleThresholdSlider = addSlider(leftMargin, posY+=ySpace/2,"angleThreshold", "ANGLE", 10, 90, angleThreshold);
+    angleThresholdSlider.onRelease(angleThresholdrelease)
+            .onReleaseOutside(angleThresholdrelease);
+
+    minSegmentsSlider = addSlider(leftMargin, posY+=ySpace/2,"minSegments", "MIN SEGMENTS", 0, 100, MIN_BULK_POINTS);
+    minSegmentsSlider.onRelease(minSegmentsrelease)
+            .onReleaseOutside(minSegmentsrelease);
 
     stipplePlot.init();
 
@@ -376,10 +397,6 @@ public void hideImageControls()
 
     filterDropList.setVisible(false);
     pixelSizeSlider.setVisible(false);
-    t1Slider.setVisible(false);
-    t2Slider.setVisible(false);
-    t3Slider.setVisible(false);
-    t4Slider.setVisible(false);
     penSlider.setVisible(false);
 
     stipplePlot.hideControls();
@@ -430,6 +447,42 @@ CallbackListener release = new CallbackListener() {
 CallbackListener speedrelease = new CallbackListener() {
     public void controlEvent(CallbackEvent theEvent) {
         setSpeed((int)speedSlider.getValue());
+    }
+};
+
+CallbackListener minRadiusrelease = new CallbackListener() {
+    public void controlEvent(CallbackEvent theEvent) {
+        minCurveRadius = minRadiusSlider.getValue();
+    }
+};
+
+// CallbackListener curveHeightFactorrelease = new CallbackListener() {
+//     public void controlEvent(CallbackEvent theEvent) {
+//         CURVE_HEIGHT_FACTOR = curveHeightFactorSlider.getValue();
+//     }
+// };
+
+CallbackListener preActuationDistanceUprelease = new CallbackListener() {
+    public void controlEvent(CallbackEvent theEvent) {
+        preActuationDistanceUp = preActuationDistanceUpSlider.getValue();
+    }
+};
+
+CallbackListener preActuationDistanceDownrelease = new CallbackListener() {
+    public void controlEvent(CallbackEvent theEvent) {
+        preActuationDistanceDown = preActuationDistanceDownSlider.getValue();
+    }
+};
+
+CallbackListener angleThresholdrelease = new CallbackListener() {
+    public void controlEvent(CallbackEvent theEvent) {
+        angleThreshold = radians(angleThresholdSlider.getValue());
+    }
+};
+
+CallbackListener minSegmentsrelease = new CallbackListener() {
+    public void controlEvent(CallbackEvent theEvent) {
+        MIN_BULK_POINTS = int(minSegmentsSlider.getValue());
     }
 };
 

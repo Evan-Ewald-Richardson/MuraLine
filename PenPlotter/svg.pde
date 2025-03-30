@@ -30,6 +30,8 @@ class SvgPlot extends Plot {
 
     protected void generatePaths() {
         if (penPaths == null || penPaths.isEmpty()) return;
+
+        optimize(sh);
         
         // Clear previous path vectors at the start of path generation
         previousPathVectors.clear();
@@ -90,7 +92,7 @@ class SvgPlot extends Plot {
                 0, 
                 previousPathVectors, 
                 100.0f,          // Distance for approach curve
-                preActuationDistance,  // Pre-actuation distance 
+                preActuationDistanceDown,  // Pre-actuation distance 
                 true,            // Pen down is true (we're approaching to draw)
                 servoDownValue   // Servo value for pen down
             );
@@ -116,7 +118,7 @@ class SvgPlot extends Plot {
             boolean penUpCommandIssued = false;
             
             // FIXED: Pre-calculate the point to issue pen-up command
-            float penUpDistance = totalPathLength - preActuationDistance;
+            float penUpDistance = totalPathLength - preActuationDistanceUp;
             
             for (int j = 1; j < path.size(); j++) {
                 float prevX = path.getPoint(j-1).x * scaleX + machineWidth / 2 + offX;
@@ -321,7 +323,6 @@ class SvgPlot extends Plot {
                 ly = p.y;
             }
         }
-        System.out.println("total Path length " + total);
     }
 
     public void optimize(RShape shape) {
@@ -334,48 +335,47 @@ class SvgPlot extends Plot {
                 Path path = new Path();
 
                 ArrayList<Path> segments = segmentPathAtAngles(pointPath);
-                remainingPaths.addAll(segments);
+                
+                if (segments.size() >= 1) {
+                    remainingPaths.addAll(segments);
+                }
             }
         }
 
-        println("Original number of paths " + remainingPaths.size());
-
-        Path path = nearestPath(homeX, homeY, remainingPaths);
-        penPaths.add(path);
-
-        int numPaths = remainingPaths.size();
-        for (int i = 0; i < numPaths; i++) {
-            RPoint last = path.last();
-            path = nearestPath(last.x, last.y, remainingPaths);
+        if (remainingPaths.size() != 0) {
+            Path path = nearestPath(homeX, homeY, remainingPaths);
             penPaths.add(path);
+
+            int numPaths = remainingPaths.size();
+            for (int i = 0; i < numPaths; i++) {
+                RPoint last = path.last();
+                path = nearestPath(last.x, last.y, remainingPaths);
+                penPaths.add(path);
+            }
+
+            if (shortestSegment > 0) {
+                remainingPaths = penPaths;
+                penPaths = new ArrayList<Path>();
+
+                mergePaths(shortestSegment, remainingPaths);
+                removeShort(shortestSegment);
+            }
+            totalPathLength();
         }
-
-        if (shortestSegment > 0) {
-            remainingPaths = penPaths;
-            penPaths = new ArrayList<Path>();
-
-            mergePaths(shortestSegment, remainingPaths);
-            println("number of optimized paths " + penPaths.size());
-
-            println("number of points " + totalPoints(penPaths));
-            removeShort(shortestSegment);
-            println("number of opt points " + totalPoints(penPaths));
-        }
-        totalPathLength();
     }
 
     private ArrayList<Path> segmentPathAtAngles(RPoint[] pointPath) {
         ArrayList<Path> segments = new ArrayList<Path>();
 
-        if (pointPath.length < 3) {
-            // If the path is too short, just add it as is.
-            Path path = new Path();
-            for (RPoint point : pointPath) {
-                path.addPoint(point.x, point.y);
-            }
-            segments.add(path);
-            return segments;
-        }
+        // if (pointPath.length < 3) {
+        //     // If the path is too short, just add it as is.
+        //     Path path = new Path();
+        //     for (RPoint point : pointPath) {
+        //         path.addPoint(point.x, point.y);
+        //     }
+        //     segments.add(path);
+        //     return segments;
+        // }
 
         // Start the bulk segment with the first two points.
         Path currentSegment = new Path();
@@ -416,7 +416,10 @@ class SvgPlot extends Plot {
                 
                 if (angle > angleThreshold) {
                     // At a significant angle break, check if the current bulk segment is substantial.
-                    if (currentSegmentLength >= MIN_BULK_LENGTH && currentSegment.size() >= MIN_BULK_POINTS) {
+                    // if (currentSegmentLength >= MIN_BULK_LENGTH && currentSegment.size() >= MIN_BULK_POINTS) {
+                    //     segments.add(currentSegment);
+                    // }
+                    if (currentSegment.size() >= MIN_BULK_POINTS) {
                         segments.add(currentSegment);
                     }
                     // Otherwise, discard this bulk group.
@@ -441,9 +444,10 @@ class SvgPlot extends Plot {
         }
         
         // After processing all points, check the final bulk segment.
-        if (currentSegment.size() > 0 &&
-            currentSegmentLength >= MIN_BULK_LENGTH &&
-            currentSegment.size() >= MIN_BULK_POINTS) {
+        // if (currentSegmentLength >= MIN_BULK_LENGTH && currentSegment.size() >= MIN_BULK_POINTS) {
+        //     segments.add(currentSegment);
+        // }
+        if (currentSegment.size() >= MIN_BULK_POINTS) {
             segments.add(currentSegment);
         }
         

@@ -61,6 +61,7 @@ class Com {
             myPort = new processing.serial.Serial(applet, processing.serial.Serial.list()[port], (int) baudRate);
             println("connected");
             myPort.write("\n");
+            sendM665();
         } catch (Exception exp) {
             exp.printStackTrace();
             println(exp);
@@ -133,6 +134,14 @@ class Com {
 
     public void sendSpeed() {
         send("G0 F" + speedValue + "\n");
+    }
+
+    public void sendM665() {
+        send("M665 L0 \n");
+        send("M665 R" + machineWidth + "\n");
+        send("M665 T0 \n");
+        send("M665 B" + -machineHeight + "\n");
+        send("M665 H" + 0.9*Math.sqrt((machineWidth * machineWidth) + (machineHeight * machineHeight)) + "\n");
     }
 
 // M665: Set POLARGRAPH settings

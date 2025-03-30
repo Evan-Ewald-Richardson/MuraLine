@@ -78,12 +78,13 @@ int speedValue = 30000;     // speed of motors controlled with speed slider
 float zoomScale = 0.2f;   // screen scale controlle with mouse wheel
 float shortestSegment = 0;    // cull out svg segments shorter that is.
 
-float MIN_CURVE_RADIUS;  // Minimum radius for curves
+float minCurveRadius;  // Minimum radius for curves
 int MAX_CURVE_SEGMENTS;    // Maximum number of segments
 int MIN_CURVE_SEGMENTS;     // Minimum number of segments
 float CURVE_HEIGHT_FACTOR;
 
-float preActuationDistance;
+float preActuationDistanceUp;
+float preActuationDistanceDown;
 int segmentDensityFactor;
 
 
@@ -143,7 +144,7 @@ int motorOffColor = color(0, 0, 255); // rgb(0, 0, 255)
 int paintColor = color(0, 0, 0,255); // rgba(0, 0, 0, 1)  
 int previewColor = color(0,0,0,255); // rgba(0, 0, 0, 1)
 int whilePlottingColor = color(0,0,0,64); // rgba(0, 0, 0, 0.25)
-int travelColor = color(0,255,0,64); // rgba(0, 255, 0, 0.25)
+int travelColor = color(0,255,0,128); // rgba(0, 255, 0, 0.5)
 int servoUpCircleColor = color(65,148,243,128); // rgba(65, 148, 243, 0.5)
 int servoDownCircleColor = color(243,166,65,128); // rgba(243, 166, 65, 0.5)
 
@@ -270,9 +271,7 @@ public void setup() {
     prevHeight = height;
 
     speedSlider.setValue(speedValue);
-
     pixelSizeSlider.setValue(pixelSize);
-
     scaleSlider.setValue(userScale);
     
     servoDwell = Integer.parseInt(props.getProperty("servo.dwell"));
@@ -288,18 +287,26 @@ public void setup() {
     workAreaMinY = paperTop;
     workAreaMaxY = paperTop + paperHeight;
 
-    MIN_CURVE_RADIUS = Float.parseFloat(props.getProperty("travel_curve.MIN_CURVE_RADIUS"));
+    minCurveRadius = Float.parseFloat(props.getProperty("travel_curve.minCurveRadius"));
     MAX_CURVE_SEGMENTS = Integer.parseInt(props.getProperty("travel_curve.MAX_CURVE_SEGMENTS"));
     MIN_CURVE_SEGMENTS = Integer.parseInt(props.getProperty("travel_curve.MIN_CURVE_SEGMENTS"));
     CURVE_HEIGHT_FACTOR = Float.parseFloat(props.getProperty("travel_curve.CURVE_HEIGHT_FACTOR"));
 
-    preActuationDistance = Float.parseFloat(props.getProperty("motion.preActuationDistance"));
+    preActuationDistanceUp = Float.parseFloat(props.getProperty("motion.preActuationDistanceUp"));
+    preActuationDistanceDown = Float.parseFloat(props.getProperty("motion.preActuationDistanceDown"));
     segmentDensityFactor = Integer.parseInt(props.getProperty("motion.segmentDensityFactor"));
 
     angleThreshold = radians(Float.parseFloat(props.getProperty("svg_parse.angleThreshold.degrees")));
     polygonizerLength = Float.parseFloat(props.getProperty("svg_parse.polygonizerLength"));
     MIN_BULK_LENGTH = Float.parseFloat(props.getProperty("svg_parse.MIN_BULK_LENGTH"));
     MIN_BULK_POINTS = Integer.parseInt(props.getProperty("svg_parse.MIN_BULK_POINTS"));
+
+    minRadiusSlider.setValue(minCurveRadius);
+    // curveHeightFactorSlider.setValue(CURVE_HEIGHT_FACTOR);
+    preActuationDistanceUpSlider.setValue(preActuationDistanceUp);
+    preActuationDistanceDownSlider.setValue(preActuationDistanceDown);
+    angleThresholdSlider.setValue(degrees(angleThreshold));
+    minSegmentsSlider.setValue(MIN_BULK_POINTS);
 
 
     updateScale();
@@ -435,10 +442,15 @@ public void handleMoved(String id, int x, int y)
     else if(id.equals("pWidth"))
     {
         paperWidth = (x-homeX)*2;
+        workAreaMinX = (machineWidth-paperWidth)/2;
+        workAreaMaxX = machineWidth - workAreaMinX;
+
     }
     else if(id.equals("pHeight"))
     {
         paperHeight = (y-paperTop);
+        workAreaMinY = paperTop;
+        workAreaMaxY = paperTop + paperHeight;
     }
 }
 
