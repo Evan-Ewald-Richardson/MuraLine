@@ -6,36 +6,12 @@
 
 **Muraline is an automated, cable-driven robot system designed to assist artists in transferring digital artwork onto large physical surfaces, streamlining the "blocking out" phase of mural creation.**
 
----
-
-## Table of Contents
-
-- [The Problem: Blocking Out Large Murals](#the-problem-blocking-out-large-murals)
-- [Our Solution: Muraline](#our-solution-muraline)
-- [Key Features](#key-features)
-- [How It Works (Artist Workflow)](#how-it-works-artist-workflow)
-- [System Overview](#system-overview)
-  - [Hardware](#hardware)
-  - [Software (UI & Backend)](#software-ui--backend)
-  - [Firmware](#firmware)
-- [Technology Stack](#technology-stack)
-- [Testing & Validation](#testing--validation)
-- [Future Iterations](#future-iterations)
-- [Project Motivation](#project-motivation)
-- [Acknowledgements](#acknowledgements)
-
----
 
 ## The Problem: Blocking Out Large Murals
 
 Creating large-scale murals often begins with a technically challenging, time-consuming, and potentially expensive process called "blocking out." This involves accurately scaling and outlining the artist's design onto the wall.
 
 Traditional methods like projection are difficult for large or sunlit walls, while techniques like the "Squiggle Grid" are labor-intensive, require extended scaffolding/lift rentals, and can disrupt local businesses. This initial phase demands high technical skill but offers low creative output, posing barriers for both amateur and professional artists.
-
-<p align="center">
-  <img src="Docs/Media/blockout_image.png" alt="Problem Illustration" width="600"/>
-  The traditional 'blocking' process can be complex
-</p>
 
 ## Our Solution: Muraline
 
@@ -57,11 +33,9 @@ Muraline tackles the blocking-out challenge head-on. It's a portable, automated 
 *   **Real-time Control:** Features include pause/resume, step-by-step execution, and manual jogging.
 *   **Customizable Output:** Allows filtering of small details and configuration of painting parameters.
 
-<p align="center">
-  <img src="Docs/Media/UI.gif" alt="Muraline User Interface Demo" width="600"/> 
-  <!-- Adjust width as needed -->
-  The Muraline User Interface
-</p>
+
+![Docs/Media/UI.gif](Docs/Media/UI.gif)
+
 
 ## How It Works (Artist Workflow)
 
@@ -88,8 +62,7 @@ Muraline employs a two-wire, cable-driven robot (Polargraph) architecture. Key c
 *   **Laptop Station:** Houses the main control board (BTT SKR V1.3), power supplies (12V, 5V), LCD interface, and connections to the Base Stations and Paint Platform.
 
 <p align="center">
-  <img src="Docs/Media/ecosystem.png" alt="Muraline Hardware Ecosystem" width="600"/>
-  Overview of the Muraline hardware components
+  <img src="Docs/Media/ecosystem.png" alt="Muraline Hardware Ecosystem" width="400"/>
 </p>
 
 ### Software (UI & Backend)
@@ -107,8 +80,7 @@ Muraline employs a two-wire, cable-driven robot (Polargraph) architecture. Key c
     *   Procedural `G-code` generation tailored for the Polargraph kinematics and Marlin firmware.
 
 <p align="center">
-  <img src="Docs/Media/software_diagram.png" alt="Software Architecture Diagram" width="600"/>
-  High-level software and firmware architecture
+  <img src="Docs/Media/software_diagram.png" alt="Software Architecture Diagram" width="400"/>
 </p>
 
 ### Firmware
@@ -141,19 +113,16 @@ Muraline underwent rigorous testing:
 *   **Large-Scale Testing:** Demonstrated motion capabilities and stability on a 4-storey parkade wall (approx. 10x8m work area), confirming scalability.
 
 <p align="center">
-  <img src="Docs/Media/test_pattern.png" alt="Geometric and Repeatability Test Patterns" width="600"/>
-  Painted geometric and repeatability test patterns
+  <img src="Docs/Media/test_pattern.png" alt="Geometric and Repeatability Test Patterns" width="400"/>
 </p>
 <p align="center">
-  <img src="Docs/Media/rachel_art.png" alt="Artist Collaboration Example" width="700"/>
-  Muraline's outline (left) based on Rachel Hogg's digital art, and her final painted mural (right)
+  <img src="Docs/Media/rachel_art.png" alt="Artist Collaboration Example" width="800"/>
 </p>
 <p align="center">
-  <img src="Docs/Media/thunderbird_test.png" alt="Large Scale Testing at Thunderbird Parkade" width="600"/>
-  Testing system motion at scale on a 4-storey wall
+  <img src="Docs/Media/thunderbird_test.png" alt="Large Scale Testing at Thunderbird Parkade" width="300"/>
 </p>
 
-## Future Iterations
+## Future Work
 
 Potential improvements identified for future development:
 
